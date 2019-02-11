@@ -1,0 +1,3 @@
+function ret = IsQHYCCDControlAvailable(camhandle,control)
+  ret=...
+      calllib('libqhyccd','IsQHYCCDControlAvailable',camhandle,uint16(control));

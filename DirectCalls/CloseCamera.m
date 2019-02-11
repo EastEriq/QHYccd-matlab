@@ -1,0 +1,3 @@
+CloseQHYCCD(camhandle);
+
+ReleaseQHYCCDResource;
