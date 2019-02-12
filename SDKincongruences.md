@@ -27,11 +27,11 @@ QHY367c/USB2/Matlab 2015b/Ubuntu16/SDK v19.1.22.0.
   acquisition segfaults in `_ZN7QHYBASE14QHYCCDDemosaicEPvjjjS0_h`. Ok, it is stated in
   [here](https://www.qhyccd.com/bbs/index.php?topic=6038.msg31762#msg31762) and
   [here](https://www.qhyccd.com/bbs/index.php?topic=5903.msg31631#msg31631),
-  but seriously, it should be handled more gracefully/
+  but seriously, it should be handled more gracefully.
 
 + The organization of pixels in the image buffer, when in 8bit/color mode w/o binning,
   is different from images returned in single frame and in live mode. I'm not always able
-  to make sense only of it. In single frame in particular, the organization seems to be
+  to make sense of it. In single frame in particular, the organization seems to be
   differently wrong (e.g. image split and reinterleaved, buffer only partially filled)
   when the mode is changed.
 
