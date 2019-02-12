@@ -15,15 +15,25 @@ QHY367c/USB2/Matlab 2015b/Ubuntu16/SDK v19.1.22.0.
   are actually the same as those of `GetQHYCCDEffectiveArea()` (but once I saw something even
   less logical -- probably depending on some other mode-setting call).
 
-+ If color mode is set (that is `SetQHYCCDDebayerOnOff(camhandle,true)`),
-  acquisition can crash with a segfault in `_ZN7QHYBASE14QHYCCDDemosaicEPvjjjS0_h`,
-  depending on I don't know what, maybe when `CONTROL_TRANSFERBIT` is 16,
-  maybe attempting to set/ignore overscan
-  (`SetQHYCCDParam(camhandle,qhyccdControl.CAM_IGNOREOVERSCAN_INTERFACE,0 or 1)`),
-  maybe based on the previous history of the camera since connected.
++ The functional difference between
+  `SetQHYCCDParam(camhandle,qhyccdControl.CONTROL_TRANSFERBIT,bp)` and
+  `SetQHYCCDBitsMode(camhandle,bp)` is not explained. Moreover neither function
+  returns errors if `bp` is any number different than 8 or 16. It is not clear
+  which one of the two if not both have to be set consistently for a correct acquisition,
+  and I suspect that `ExpQHYCCDSingleFrame` crashes if they are not.
 
-+ The organization of pixels in the image buffer, when in 8bit/color mode is different from images
-  returned in single frame and in live mode. So far I'm able to make sense only of the latter.
++ If color mode is set (that is `SetQHYCCDDebayerOnOff(camhandle,true)`) and transfer
+  mode is 16 bit,
+  acquisition segfaults in `_ZN7QHYBASE14QHYCCDDemosaicEPvjjjS0_h`. Ok, it is stated in
+  [here](https://www.qhyccd.com/bbs/index.php?topic=6038.msg31762#msg31762) and
+  [here](https://www.qhyccd.com/bbs/index.php?topic=5903.msg31631#msg31631),
+  but seriously, it should be handled more gracefully/
+
++ The organization of pixels in the image buffer, when in 8bit/color mode w/o binning,
+  is different from images returned in single frame and in live mode. I'm not always able
+  to make sense only of it. In single frame in particular, the organization seems to be
+  differently wrong (e.g. image split and reinterleaved, buffer only partially filled)
+  when the mode is changed.
 
 + In bw mode, overscan ignored, the buffer still has black bands -- only, instead of a single
   vertical band on the left of the image, the black is half at the left and half at the right
@@ -32,17 +42,12 @@ QHY367c/USB2/Matlab 2015b/Ubuntu16/SDK v19.1.22.0.
 
 + The return value of `GetQHYCCDParamMinMaxStep(camhandle,parameter)` may be 0 even for non supported parameters.
 
-+ The functional difference between
-  `SetQHYCCDParam(camhandle,qhyccdControl.CONTROL_TRANSFERBIT,bp)` and
-  `SetQHYCCDBitsMode(camhandle,bp)` is not explained. Moreover neither function
-  returns errors if `bp` is any number different than 8 or 16. It is not clear
-  which one of the two if not both have to be set consistently for a correct acquisition,
-  and I suspect that `ExpQHYCCDSingleFrame` crashes if they are not.
-
 + `GetQHYCCDMemLength(camhandle)` returns always 110023200 no matter binning,
    color mode, ROI, overscan, resolution set (`SetQHYCCDResolution`) no matter whether
    called before or after acquisition
-   is started. Unreasonable, and doesn't help dimensioning correctly the image buffer.
+   is started. Ok, said [here](https://www.qhyccd.com/bbs/index.php?topic=5903.msg31621#msg31621).
+   But alas, that is unreasonable, and doesn't help dimensioning correctly the image buffer.
+   Setting always max can turn out wasteful.
 
 + There is no function like a `GetQHYCCDResolution()`. "Resolution" (in fact ROI) can only be set. But
   without a way to read it back, there is no basis for allocating correctlythe image buffer for image

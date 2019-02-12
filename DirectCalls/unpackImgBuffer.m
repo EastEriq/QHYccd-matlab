@@ -1,4 +1,4 @@
-function img=unpackImgBuffer(Pimg,w,h,color,bp,xb,yb)
+function img=unpackImgBuffer(Pimg,w,h,color,bp)
     % trying to make this work for color/bw, 8/16bit, binning
     
     % IIUC https://www.qhyccd.com/bbs/index.php?topic=6038.msg31725#msg31725

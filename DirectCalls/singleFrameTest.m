@@ -15,9 +15,9 @@ tic
     GetQHYCCDSingleFrame(camhandle,floor(w/xb),floor(h/yb),bp,Pimg);
 toc
 
-% it seems that Single Frame is always bw 16bit,
-%  no matter parameter settings (why?)
-img=unpackImgBuffer(Pimg,w,h,color,bp,xb,yb);
+% After a mode change, it seems that Single Frames pixels are
+% organized differently than Live Frames. Why?
+img=unpackImgBuffer(Pimg,w,h,color,bp);
 
 ShowImage
 

@@ -12,11 +12,11 @@ ControlQHYCCDTemp(camhandle,-18);
 % these two are the same if 8 or 16 (at least in Live mode -- in
 %  single frame -- oddities happen)
 %  any other value is silently interpreted as 16
+% Don't set color and 16 bit - the SDK is known for not supporting,
+%  and will segfault when acquiring
 bp=8;
 SetQHYCCDParam(camhandle,qhyccdControl.CONTROL_TRANSFERBIT,bp);
 SetQHYCCDBitsMode(camhandle,bp);
-
-GetQHYCCDParam(camhandle,qhyccdControl.CONTROL_TRANSFERBIT);
 
 fprintf('current white balance: %f/%f/%f\n',...
     GetQHYCCDParam(camhandle,qhyccdControl.CONTROL_WBR),...
@@ -25,7 +25,7 @@ fprintf('current white balance: %f/%f/%f\n',...
 
 %[~,min,max,step]=GetQHYCCDParamMinMaxStep(camhandle,qhyccdControl.CONTROL_EXPOSURE)
 
-color=true;
+color=~false;
 SetQHYCCDDebayerOnOff(camhandle,color);
 
 if color
@@ -34,6 +34,19 @@ else
     % this is problematic in color mode
     SetQHYCCDParam(camhandle,qhyccdControl.CAM_IGNOREOVERSCAN_INTERFACE,1);
     SetQHYCCDResolution(camhandle,x1,y1,sx,sy);
+end
+
+if GetQHYCCDParam(camhandle,qhyccdControl.CAM_BIN1X1MODE)==0
+    fprintf(' camera says it can bin 1x1\n')
+end
+if GetQHYCCDParam(camhandle,qhyccdControl.CAM_BIN2X2MODE)==0
+    fprintf(' camera says it can bin 2x2\n')
+end
+if GetQHYCCDParam(camhandle,qhyccdControl.CAM_BIN3X3MODE)==0
+    fprintf(' camera says it can bin 3x3\n')
+end
+if GetQHYCCDParam(camhandle,qhyccdControl.CAM_BIN4X4MODE)==0
+    fprintf(' camera says it can bin 4x4\n')
 end
 
 % for the QHY367, 1x1 and 2x2 seem to work; NxN with N>2 gives error,

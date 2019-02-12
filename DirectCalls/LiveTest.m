@@ -24,7 +24,7 @@ while ~get(btn,'Value')
     end
     j=j+1;
 
-    img=unpackImgBuffer(Pimg,w,h,color,bp,xb,yb);
+    img=unpackImgBuffer(Pimg,w,h,color,bp);
     
     ShowImage
     
