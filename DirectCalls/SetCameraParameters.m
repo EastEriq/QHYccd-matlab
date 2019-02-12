@@ -12,7 +12,7 @@ ControlQHYCCDTemp(camhandle,-18);
 % these two are the same if 8 or 16 (at least in Live mode -- in
 %  single frame -- oddities happen)
 %  any other value is silently interpreted as 16
-bp=16;
+bp=8;
 SetQHYCCDParam(camhandle,qhyccdControl.CONTROL_TRANSFERBIT,bp);
 SetQHYCCDBitsMode(camhandle,bp);
 
@@ -25,7 +25,7 @@ fprintf('current white balance: %f/%f/%f\n',...
 
 %[~,min,max,step]=GetQHYCCDParamMinMaxStep(camhandle,qhyccdControl.CONTROL_EXPOSURE)
 
-color=false;
+color=true;
 SetQHYCCDDebayerOnOff(camhandle,color);
 
 if color
@@ -46,3 +46,14 @@ else
 end
 
 %[ret,humidity]=GetQHYCCDHumidity(camhandle)
+
+% Allocate one image buffer here
+
+imlength=GetQHYCCDMemLength(camhandle);
+%imlength results always 3*7400*4956. This sounds fishy. It should
+% rather depend on bp, color, binning, ROI, overscan
+
+% Allocate the buffer. Question if it could be smaller than 3*7400*4956
+Pimg=libpointer('uint8Ptr',zeros(imlength,1,'uint8'));
+
+

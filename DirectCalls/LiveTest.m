@@ -6,10 +6,6 @@ SetQHYCCDStreamMode(camhandle,1);
 
 BeginQHYCCDLive(camhandle);
 
-imlength=GetQHYCCDMemLength(camhandle);
-    
-Pimg=libpointer('uint8Ptr',zeros(imlength,1,'uint8'));
-
 figure(1)
 btn=uicontrol('Style','Togglebutton','Position',[20 20 50 20],...
               'String','stop');
@@ -30,19 +26,14 @@ while ~get(btn,'Value')
 
     img=unpackImgBuffer(Pimg,w,h,color,bp,xb,yb);
     
-    imagesc(img)
-    if ~color
-        colormap gray; colorbar
-    else
-        colorbar off
-    end
+    ShowImage
+    
     title(sprintf('image # %d, %d repeats',j,i))
     drawnow
 end
 
 StopQHYCCDLive(camhandle);
 
-clear Pimg
 delete(btn)
 
 CloseCamera
