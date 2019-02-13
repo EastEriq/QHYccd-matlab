@@ -32,15 +32,15 @@ Making that work:
 
         cd /
         sudo tar -xzvf <path_where_you_saved_it>/LINUX_qhyccd_V20190122_0.tgz
- It includes installation instructions in `/usr/local/doc/` which might(?) be still relevant.
- Remember to clean it up someday at the end with something like
+    It includes installation instructions in `/usr/local/doc/` which might(?) be still relevant.
+    Remember to clean it up someday at the end with something like
 
         sudo rm -rf `tar -tf LINUX_qhyccd_V20190122_0.tgz`
- Now, to be fair, out of three installations, I apparently trashed one OS.
- What *might* possibly have happened is that some system file (maybe `/etc/udev/rules/85-qhyccd.rules`?)
- got written as owned by  the installing user and not by `root`. This might be a reason for a strict
- bootloader to be alarmed, and to mount `/` as readonly. I was not able to repair the situation in
- recovery mode, so I had to reinstall the whole OS... Just saying, YMMV.
+    Now, to be fair, out of three installations, I apparently trashed one OS.
+    What *might* possibly have happened is that some system file (maybe `/etc/udev/rules/85-qhyccd.rules`?)
+    got written as owned by the installing user and not by `root`. This might be a reason for a strict
+    bootloader to be alarmed, and to mount `/` as readonly. I was not able to repair the situation in
+    recovery mode, so I had to reinstall the whole OS... Just saying, YMMV.
 
 + Plugging in the camera in the SS-USB port, if all goes well the relevant firmware is downloaded and the camera is registrered so that the QHY sdk can find it. According to: [this post](https://www.qhyccd.com/bbs/index.php?topic=5781.0]) there used to be a missing step if the camera is plugged into an USB-3 port. My experience is a bit inconclusive. On my
 office computer the backpanel has two USB-SS ports, but plugging the camera there, with one cable I couldn't get it recognized, with another yes but apparently only at USB-2 speed. To check, if all goes well, `dmesg` would report
@@ -102,11 +102,11 @@ something like
   installed in Applications/Programming, the program is launched with `/usr/bin/EZCAP/EZCAP.sh`.
 
 + Surprisingly, EZCAP finds the camera, even without having asked `fx3load` to download specific firmware
-(which I thought was the one found in `/usr/local/lib/qhy/firmware/`). It runs
-a bit clunky, but works and shows things.
+ (which I thought was the one found in `/usr/local/lib/qhy/firmware/`). It runs
+ a bit clunky, but works and shows things.
 
-+ The other demos in https://www.qhyccd.com/index.php?m=content&c=index&a=show&catid=127&id=166
- are for windows :(
++ The [other demos published](https://www.qhyccd.com/index.php?m=content&c=index&a=show&catid=127&id=166)
+ are for windows **:(**
 
 As for interfacing with Matlab
 ------------------------------
@@ -115,16 +115,16 @@ As for interfacing with Matlab
    from `libusb-1.0,` as can be seen from
    `readelf -d /usr/local/lib/libqhyccd.so`. The intended use seems to have been only that of building
    executables, linked at compile time with the system version of libusb found by a Cmake script.
-   Several symbols from `libusb` are thus needed and undefined, as clear from
+   Several symbols from `libusb` are needed and left undefined, as clear from
    `nm -D /usr/local/lib/libqhyccd.so | grep "U libusb"`. Matlab interfacing (mex or `loadlibrary`)
    would give ultimately the error `/usr/local/lib/libqhyccd.so: undefined symbol: libusb_open`.
    A possible workaround is to start matlab from shell with `LD_PRELOAD=/lib/x86_64-linux-gnu/libusb-1.0.so.0 matlab`
    but there may be more elegant solutions.
 
 + I could compile the
-[Matlab demo](http://qhyccd.com/file/repository/latestSoftAndDirver/SDK/MatlabSDKdemo.zip),
-(which is intended for windows) on Linux, with a couple of tweaks. However, it is just a
-single c++ program which gets built as mex, not a way to interface directly with the SDK library.
+ [Matlab demo](http://qhyccd.com/file/repository/latestSoftAndDirver/SDK/MatlabSDKdemo.zip),
+ (which is intended for windows) on Linux, with a couple of tweaks. However, it is just a
+ single c++ program which gets built as mex, not a way to interface directly with the SDK library.
 
 + A more flexible way seems to me to use `loadlibrary('libqhyccd')`, because it gives
   granular access to the SDK functions at matlab prompt. To succeed in this, the header
@@ -135,4 +135,4 @@ single c++ program which gets built as mex, not a way to interface directly with
 
 + On a windows 10 machine with Visual Studio 2017 I haven't yet been able neither to run the mex-demo,
   nor to loadlib the dll. The former gives compilation errors, with the latter the showstopper seems
-  the inclusion of CyAPI.h which is pure C++.
+  to be the inclusion of CyAPI.h which is pure C++.
