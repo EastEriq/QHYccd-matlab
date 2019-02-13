@@ -12,7 +12,7 @@
 %
 % Tested : Matlab R2014b Ubuntu16, Matlab R2018b Ubuntu18
 %     By : Enrico Segre                    Feb 2019
-%    URL : https://gitlab.weizmann.ac.il/Segre/AstroMatlabDrivers/tree/master/Camera/QHY
+%    URL : https://github.com/EastEriq/QHYccd-matlab
 % Example: % 
 %
 % Reliable: Like the chinese fire drill

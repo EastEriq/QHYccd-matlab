@@ -18,6 +18,7 @@ as well as on Matlab 2018b/Ubuntu18/SDK v19.1.22.0, QHY367c camera connected on 
 +  `.md` files: ramblings and rants about usage
 
 +  `QHYccd.m` Matlab ***class***, for integration with [MAAT](https://webhome.weizmann.ac.il/home/eofek/matlab/index.html)
+   (*in development, not yet up*)
 
 + `headers/`: modified qhy headers, so that Matlab's `loadlibrary()` is happy with them
 

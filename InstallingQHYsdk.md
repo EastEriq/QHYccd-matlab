@@ -26,17 +26,25 @@ Making that work:
 + got what is said to be the
  [latest SDK](http://www.qhyccd.com/file/repository/latestSoftAndDirver/SDK/V4.0.12/LINUX_qhyccd_V20190122_0.tgz)
  as per [this announcement](https://www.qhyccd.com/index.php?m=content&c=index&a=show&catid=127&id=163).
-The [version on github](https://github.com/qhyccd-lzr/QHYCCD_Linux_New)
-seems less up to date.
-The latest SDK comes in the form of a `.tgz` which has to be extracted in `/` __(!!!)__.
-Remember to clean it up someday at the end with something like
+ The [version on github](https://github.com/qhyccd-lzr/QHYCCD_Linux_New)
+ seems less up to date.
+ The latest SDK comes in the form of a `.tgz` which has to be extracted in `/` __(!!!)__.That is, to install
+
+        cd /
+        sudo tar -xzvf <path_where_you_saved_it>/LINUX_qhyccd_V20190122_0.tgz
+ It includes installation instructions in `/usr/local/doc/` which might(?) be still relevant.
+ Remember to clean it up someday at the end with something like
 
         sudo rm -rf `tar -tf LINUX_qhyccd_V20190122_0.tgz`
-
-    It includes installation instructions in `/usr/local/doc/` which might(?) be still relevant.
+ Now, to be fair, out of three installations, I apparently trashed one OS.
+ What *might* possibly have happened is that some system file (maybe `/etc/udev/rules/85-qhyccd.rules`?)
+ got written as owned by  the installing user and not by `root`. This might be a reason for a strict
+ bootloader to be alarmed, and to mount `/` as readonly. I was not able to repair the situation in
+ recovery mode, so I had to reinstall the whole OS... Just saying, YMMV.
 
 + Plugging in the camera in the SS-USB port, if all goes well the relevant firmware is downloaded and the camera is registrered so that the QHY sdk can find it. According to: [this post](https://www.qhyccd.com/bbs/index.php?topic=5781.0]) there used to be a missing step if the camera is plugged into an USB-3 port. My experience is a bit inconclusive. On my
- office computer the backpanel has two USB-SS ports, but plugging the camera there, with one cable I couldn't get it recognized, with another yes but apparently only at USB-2 speed. To check, if all goes well, `dmesg` would report
+office computer the backpanel has two USB-SS ports, but plugging the camera there, with one cable I couldn't get it recognized, with another yes but apparently only at USB-2 speed. To check, if all goes well, `dmesg` would report
+something like
 
         [182031.652088] usb 3-2: new high-speed USB device number 38 using xhci_hcd
         [182031.782879] usb 3-2: New USB device found, idVendor=1618, idProduct=c367
