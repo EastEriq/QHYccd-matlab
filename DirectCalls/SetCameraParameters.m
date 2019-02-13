@@ -14,7 +14,7 @@ ControlQHYCCDTemp(camhandle,-18);
 %  any other value is silently interpreted as 16
 % Don't set color and 16 bit - the SDK is known for not supporting,
 %  and will segfault when acquiring
-bp=8;
+bp=16;
 SetQHYCCDParam(camhandle,qhyccdControl.CONTROL_TRANSFERBIT,bp);
 SetQHYCCDBitsMode(camhandle,bp);
 
@@ -25,7 +25,7 @@ fprintf('current white balance: %f/%f/%f\n',...
 
 %[~,min,max,step]=GetQHYCCDParamMinMaxStep(camhandle,qhyccdControl.CONTROL_EXPOSURE)
 
-color=~false;
+color=false;
 SetQHYCCDDebayerOnOff(camhandle,color);
 
 if color

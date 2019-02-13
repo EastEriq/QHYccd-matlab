@@ -50,7 +50,7 @@ QHY367c/USB2/Matlab 2015b/Ubuntu16/SDK v19.1.22.0.
    Setting always max can turn out wasteful.
 
 + There is no function like a `GetQHYCCDResolution()`. "Resolution" (in fact ROI) can only be set. But
-  without a way to read it back, there is no basis for allocating correctlythe image buffer for image
+  without a way to read it back, there is no basis for allocating correctly the image buffer for image
   transfers. Recipe for segfaults. The fact that `GetQHYCCDSingleFrame()` and `GetQHYCCDLiveFrame()`
   return the image size is irrelevant because the buffer has to be allocated before their call.
 
