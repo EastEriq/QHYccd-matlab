@@ -1,2 +1,2 @@
 function ret=InitQHYCCDResource()
-  num=calllib('libqhyccd','InitQHYCCDResource');
+  ret=calllib('libqhyccd','InitQHYCCDResource');
