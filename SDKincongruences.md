@@ -12,8 +12,8 @@ QHY367c/USB2/Matlab 2015b/Ubuntu16/SDK v19.1.22.0.
    `qhyccdControl.CAM_BIN3X3MODE`, `qhyccdControl.CAM_BIN4X4MODE`
 
 + The dimensions reported by `GetQHYCCDOverScanArea()` are unclear. In fact the numbers returned
-  are actually the same as those of `GetQHYCCDEffectiveArea()` (but once I saw something even
-  less logical -- probably depending on some other mode-setting call).
+  are actually the same as those of `GetQHYCCDEffectiveArea()` (but at cold boot I see something even
+  less logical, like (348,6)+(3000,20)).
 
 + The functional difference between
   `SetQHYCCDParam(camhandle,qhyccdControl.CONTROL_TRANSFERBIT,bp)` and

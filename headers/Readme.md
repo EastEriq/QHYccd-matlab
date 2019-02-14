@@ -5,6 +5,7 @@
   `qhyccderr.h`
 - excluded `SetQHYCCDLogFunction` if not C++ in `qhyccd.h`
 - excluded three `OSX..`. prototypes if not macintosh in `qhyccd.h`
+- commented prototype `SetQHYCCDQuit` in `qhyccd.h`, which is missing in `libqhyccd.so`
 - empty defines of `EXPORTFUNC` and `EXPORTC` if not C++ in `qhyccdstruct.h`
 - typedef'd enum CONTROL_ID in `qhyccdstruct.h`
 

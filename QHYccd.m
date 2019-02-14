@@ -62,8 +62,9 @@ classdef QHYccd < handle
     end
     
     
-    %% Connecting and disconnecting with the library can be static methods?
-    methods (Static)
+    %% Connecting and disconnecting with the library could be static methods?
+    %    delete(), not
+    methods
         
         % Constructor
         function QC=QHYccd
@@ -98,7 +99,7 @@ classdef QHYccd < handle
     
     %% Open and close the communication with the camera
     methods
-        function Success=open(QHYccd)
+        function Success=open(QHYccd,cameranum)
             % Load the library if needed, open link to the camera,
             %  initialize the camera and store its capabilities
             %  (e.g. resolution, bit depth)
@@ -111,12 +112,19 @@ classdef QHYccd < handle
             InitQHYCCDResource;
             
             num=ScanQHYCCD;
-            % open the last camera of the list (TODO, selectable by input
-            %   argument)
-            [~,QHYccd.id]=GetQHYCCDId(num-1);
+            
+            if ~exist('cameranum','var') && cameranum<=num
+                cameranum=num; % and thus open the last camera
+                                 % (TODO, if possible, the first not
+                                 %  already open)
+            end
+            [~,QHYccd.id]=GetQHYCCDId(cameranum-1);
             
             QHYccd.camhandle=OpenQHYCCD(QHYccd.id);
-            
+            if QHYccd.verbose
+                fprintf('Opened camera "%s"\n',QHYccd.id);
+            end
+           
             InitQHYCCD(QHYccd.camhandle);
             
             [ret,QHYccd.chipw,QHYccd.chiph,QHYccd.nx,QHYccd.ny,...
@@ -163,10 +171,15 @@ classdef QHYccd < handle
             
         end
         
-        function Success=close(QC)
-
-            % check this status, which may fail
-            Success=(CloseQHYCCD(QC.camhandle)==0);            
+        function Success=close(QHYccd)
+ 
+            % don't try co lose an invalid camhandle, it would crash matlab
+            if ~isempty(QHYccd.camhandle)
+                % check this status, which may fail
+                Success=(CloseQHYCCD(QHYccd.camhandle)==0);
+            end
+            % null the handle so that other methods can't talk anymore to it
+            QHYccd.camhandle=[];
             
         end
 
