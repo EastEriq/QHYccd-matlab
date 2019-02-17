@@ -64,7 +64,7 @@ classdef QHYccd < handle
         %  is connected via USB2 or USB3, to get the current image
         %  acquisition weight, and to compute the estimated transfer time,
         %  for timeouts
-        timeout=2.4;
+        timeout=2.8;
     end
         
     properties (Hidden = true)        
@@ -115,52 +115,55 @@ classdef QHYccd < handle
     
     %% Open and close the communication with the camera
     methods
-        function Success=open(QHYccd,cameranum)
+        function Success=open(QC,cameranum)
             
             num=ScanQHYCCD;
+            if QC.verbose
+                fprintf('%d QHY cameras found\n',num);
+            end
             
             if ~exist('cameranum','var') && cameranum<=num
                 cameranum=num; % and thus open the last camera
                                  % (TODO, if possible, the first not
                                  %  already open)
             end
-            [~,QHYccd.id]=GetQHYCCDId(cameranum-1);
+            [~,QC.id]=GetQHYCCDId(cameranum-1);
             
-            QHYccd.camhandle=OpenQHYCCD(QHYccd.id);
-            if QHYccd.verbose
-                fprintf('Opened camera "%s"\n',QHYccd.id);
+            QC.camhandle=OpenQHYCCD(QC.id);
+            if QC.verbose
+                fprintf('Opened camera "%s"\n',QC.id);
             end
            
-            InitQHYCCD(QHYccd.camhandle);
+            InitQHYCCD(QC.camhandle);
             
-            [ret,QHYccd.physical_size.chipw,QHYccd.physical_size.chiph,...
-                QHYccd.physical_size.nx,QHYccd.physical_size.ny,...
-                QHYccd.physical_size.pixelw,QHYccd.physical_size.pixelh,...
-                         bp_supported]=GetQHYCCDChipInfo(QHYccd.camhandle);
+            [ret,QC.physical_size.chipw,QC.physical_size.chiph,...
+                QC.physical_size.nx,QC.physical_size.ny,...
+                QC.physical_size.pixelw,QC.physical_size.pixelh,...
+                         bp_supported]=GetQHYCCDChipInfo(QC.camhandle);
             
-            [ret,QHYccd.effective_area.x1Eff,QHYccd.effective_area.y1Eff,...
-                QHYccd.effective_area.sxEff,QHYccd.effective_area.syEff]=...
-                         GetQHYCCDEffectiveArea(QHYccd.camhandle);
+            [ret,QC.effective_area.x1Eff,QC.effective_area.y1Eff,...
+                QC.effective_area.sxEff,QC.effective_area.syEff]=...
+                         GetQHYCCDEffectiveArea(QC.camhandle);
             
-            [ret,QHYccd.overscan_area.x1Over,QHYccd.overscan_area.y1Over,...
-                QHYccd.overscan_area.sxOver,QHYccd.overscan_area.syOver]=...
-                              GetQHYCCDOverScanArea(QHYccd.camhandle);
+            [ret,QC.overscan_area.x1Over,QC.overscan_area.y1Over,...
+                QC.overscan_area.sxOver,QC.overscan_area.syOver]=...
+                              GetQHYCCDOverScanArea(QC.camhandle);
 
-            ret=IsQHYCCDControlAvailable(QHYccd.camhandle, qhyccdControl.CAM_COLOR);
+            ret=IsQHYCCDControlAvailable(QC.camhandle, qhyccdControl.CAM_COLOR);
             colorAvailable=(ret>0 & ret<5);
 
-            if QHYccd.verbose
+            if QC.verbose
                 fprintf('%.3fx%.3fmm chip, %dx%d %.2fx%.2fµm pixels, %dbp\n',...
-                    QHYccd.physical_size.chipw,QHYccd.physical_size.chiph,...
-                    QHYccd.physical_size.nx,QHYccd.physical_size.ny,...
-                    QHYccd.physical_size.pixelw,QHYccd.physical_size.pixelh,...
+                    QC.physical_size.chipw,QC.physical_size.chiph,...
+                    QC.physical_size.nx,QC.physical_size.ny,...
+                    QC.physical_size.pixelw,QC.physical_size.pixelh,...
                      bp_supported)
                 fprintf(' effective chip area: (%d,%d)+(%d,%d)\n',...
-                    QHYccd.effective_area.x1Eff,QHYccd.effective_area.y1Eff,...
-                    QHYccd.effective_area.sxEff,QHYccd.effective_area.syEff);
+                    QC.effective_area.x1Eff,QC.effective_area.y1Eff,...
+                    QC.effective_area.sxEff,QC.effective_area.syEff);
                 fprintf(' overscan area: (%d,%d)+(%d,%d)\n',...
-                    QHYccd.overscan_area.x1Over,QHYccd.overscan_area.y1Over,...
-                    QHYccd.overscan_area.sxOver,QHYccd.overscan_area.syOver);
+                    QC.overscan_area.x1Over,QC.overscan_area.y1Over,...
+                    QC.overscan_area.sxOver,QC.overscan_area.syOver);
                 if colorAvailable, fprintf(' Color camera\n'); end
             end
             
@@ -168,34 +171,34 @@ classdef QHYccd < handle
                         
             % put here also some plausible parameter settings which are
             %  not likely to be changed
-            SetQHYCCDParam(QHYccd.camhandle,qhyccdControl.CONTROL_USBTRAFFIC,30);
-            SetQHYCCDParam(QHYccd.camhandle,qhyccdControl.CONTROL_OFFSET,0);
+            SetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_USBTRAFFIC,30);
+            SetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_OFFSET,0);
             
             % ROI -- TODO
-            QHYccd.color=false;
+            QC.color=false;
             
-            if QHYccd.color
-                SetQHYCCDResolution(QHYccd.camhandle,0,0,...
-                    QHYccd.physical_size.nx,QHYccd.physical_size.ny);
+            if QC.color
+                SetQHYCCDResolution(QC.camhandle,0,0,...
+                    QC.physical_size.nx,QC.physical_size.ny);
             else
                 % this is problematic in color mode
-                SetQHYCCDParam(QHYccd.camhandle,qhyccdControl.CAM_IGNOREOVERSCAN_INTERFACE,1);
-                SetQHYCCDResolution(QHYccd.camhandle,...
-                    QHYccd.effective_area.x1Eff,QHYccd.effective_area.y1Eff,...
-                    QHYccd.effective_area.sxEff,QHYccd.effective_area.syEff);
+                SetQHYCCDParam(QC.camhandle,qhyccdControl.CAM_IGNOREOVERSCAN_INTERFACE,1);
+                SetQHYCCDResolution(QC.camhandle,...
+                    QC.effective_area.x1Eff,QC.effective_area.y1Eff,...
+                    QC.effective_area.sxEff,QC.effective_area.syEff);
             end
             
         end
         
-        function Success=close(QHYccd)
+        function Success=close(QC)
  
             % don't try co lose an invalid camhandle, it would crash matlab
-            if ~isempty(QHYccd.camhandle)
+            if ~isempty(QC.camhandle)
                 % check this status, which may fail
-                Success=(CloseQHYCCD(QHYccd.camhandle)==0);
+                Success=(CloseQHYCCD(QC.camhandle)==0);
             end
             % null the handle so that other methods can't talk anymore to it
-            QHYccd.camhandle=[];
+            QC.camhandle=[];
             
         end
 
@@ -289,11 +292,13 @@ classdef QHYccd < handle
             %   t_exp > t_readout. The latter is about 2sec on USB2, 0.2sec on USB3
             % ImageArray cell of images of size [X, Y]
             
-            BeginQHYCCDLive(QC.camhandle);
-            
             imlength=GetQHYCCDMemLength(QC.camhandle);
             
             Pimg=libpointer('uint8Ptr',zeros(imlength,1,'uint8'));
+            
+            SetQHYCCDStreamMode(QC.camhandle,1);
+
+            BeginQHYCCDLive(QC.camhandle);
             
             % allocate the output array. The problem is that we don't
             %  really know whether w and h returned by GetQHYCCDLiveFrame()
@@ -302,33 +307,39 @@ classdef QHYccd < handle
             
             QC.progressive_frame=0;
             while QC.progressive_frame<QC.sequence_frames
-                ret=-1; i=0;
-                while ret ~=0 % add here a timeout
+                ret=-1; i=0; tic;
+                while ret ~=0 && toc<(QC.expTime+QC.timeout)% add here a timeout
                     % problem: both "image not ready" and "framebuffer overrun"
                     %  return FFFFFFFF. Like this, the while exits only
                     %  only if t_exp>t_transfer and no other error happens
                     [ret,w,h,bp,channels]=...
                         GetQHYCCDLiveFrame(QC.camhandle,...
-                        QC.physical_size.nx,...
-                        QC.physical_size.ny,...
-                        QC.bitDepth,Pimg);
+                            QC.physical_size.nx,QC.physical_size.ny,...
+                            QC.bitDepth,Pimg);
                     % (what sizes exactly should be passed for a ROI, instead?)
+                    if ret~=0, pause(0.1); end
                     i=i+1;
                     if QC.verbose
                         fprintf(' check live image %d, attempt %d, code %s\n',...
-                                 QC.progressive_frame,i,dec2hex(ret));
+                                 QC.progressive_frame+1,i,dec2hex(ret));
                     end
                 end
                 QC.progressive_frame=QC.progressive_frame+1;
                 
-                ImageArray{QC.progressive_frame}=...
-                    unpackImgBuffer(Pimg,w,h,QC.color,bp,xb,yb);
-                
+                if ret==0
+                    ImageArray{QC.progressive_frame}=...
+                        unpackImgBuffer(Pimg,w,h,QC.color,bp);
+                else
+                    ImageArray{QC.progressive_frame}=[];
+                end
+
             end
+            
+            clear Pimg
             
             StopQHYCCDLive(QC.camhandle);
             
-            Success=(QC.progressive_frame==QC.sequence_frames);
+            Success=(QC.progressive_frame==QC.sequence_frames & ret==0);
 
         end
             
@@ -343,8 +354,8 @@ classdef QHYccd < handle
             %  color images should always be 3x8bit
             if color
                 img=reshape([Pimg.Value(3:3:3*w*h);...
-                                Pimg.Value(2:3:3*w*h);...
-                                Pimg.Value(1:3:3*w*h)],w,h,3);
+                             Pimg.Value(2:3:3*w*h);...
+                             Pimg.Value(1:3:3*w*h)],w,h,3);
             else
                 % for 2D we could perhaps just reshape the pointer
                 if bp==8
