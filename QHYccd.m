@@ -94,9 +94,9 @@ classdef QHYccd < handle
             
             % the constructor tries also to open the camera
             if exist('camera','var')
-                QC.Success=open(QC,camera);
+                open(QC,camera);
             else
-                QC.Success=open(QC);
+                open(QC);
             end
         end
         
