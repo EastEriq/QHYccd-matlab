@@ -18,7 +18,7 @@ as well as on Matlab 2018b/Ubuntu18/SDK v19.1.22.0, QHY367c camera connected on 
 +  `.md` files: ramblings and rants about usage
 
 +  `QHYccd.m` Matlab ***class***, for integration with [MAAT](https://webhome.weizmann.ac.il/home/eofek/matlab/index.html)
-   (*in development, not yet up*)
+   (*in development*)
 
 + `headers/`: modified qhy headers, so that Matlab's `loadlibrary()` is happy with them
 
@@ -42,4 +42,12 @@ In matlab, sequence script way:
 
 Class usage:
 
-    ....
+    addpath wrappers
+    QC=QHYccd(1);
+    QC.temperature=-10;
+    QC.expTime=2;
+    QC.gain=1000;
+    QC.color=true;
+    QC.sequence_frames=5;
+    cellImg=take_sequence_blocking(QC)
+    imagesc(cellImg{3})
