@@ -54,7 +54,7 @@ classdef QHYccd < handle
         save_images = false; % save images to files as they are taken
         memory_images = true; % store all the images in a structure array
         
-        verbose = false; % if true, printout of debug information
+        verbose = ~false; % if true, printout of debug information
     end
     
     properties (GetAccess = public, SetAccess = private)
@@ -105,7 +105,7 @@ classdef QHYccd < handle
             InitQHYCCDResource;
             
             % the constructor tries also to open the camera
-            if exist('camera','var')
+            if exist('cameranum','var')
                 open(QC,cameranum);
             else
                 open(QC);
@@ -168,8 +168,9 @@ classdef QHYccd < handle
                 QC.effective_area.sxEff,QC.effective_area.syEff]=...
                          GetQHYCCDEffectiveArea(QC.camhandle);
             
-            % warning: this returns strange numbers, which would change
-            %  if GetQHYCCDOverScanArea is called after a SetResolution
+            % warning: this returns strange numbers, which at some point
+            %  I've also seen to change (maybe depending on other calls'
+            %  order?)
             [ret3,QC.overscan_area.x1Over,QC.overscan_area.y1Over,...
                 QC.overscan_area.sxOver,QC.overscan_area.syOver]=...
                               GetQHYCCDOverScanArea(QC.camhandle);
@@ -363,14 +364,14 @@ classdef QHYccd < handle
             
             pImg=libpointer('uint8Ptr',zeros(imlength,1,'uint8'));
             
-            texp=QC.expTime; % local variable; dont call SDK every time!
+            texp=QC.expTime; % local variable; dont call SDK at every iteartion!
             
-            % allocate the output array. The problem is that we don't
-            %  really know whether w and h returned by GetQHYCCDLiveFrame()
-            %  correspond to the sensor resolution, w/o overscan or what
-            ImageArray=struct('img',[],'datetime_readout',[],'exp',[],...
+            % structures for the image and array of images
+            ImageStruct=struct('img',[],'datetime_readout',[],'exp',[],...
                              'gain',[],'offset',[]);
 
+            ImageArray=struct(ImageStruct);
+            
             if QC.grabbing_GUI
                  fn=figure('Position',[200,200,240,60],'menubar','none',...
                      'name','QHY acquisition control','numberTitle','off');
@@ -411,20 +412,31 @@ classdef QHYccd < handle
                 end
                 QC.progressive_frame=QC.progressive_frame+1;
                 
-                if ret==0 && QC.memory_images
-                    ImageArray(QC.progressive_frame).img=QC.unpackImgBuffer(pImg,w,h,channels,bp);
-                else
-                    ImageArray(QC.progressive_frame).img=[];
+                ImageStruct.datetime_readout=t_readout;
+                ImageStruct.exp=texp;
+                ImageStruct.gain=QC.gain;
+                ImageStruct.offset=QC.offset;
+                ImageStruct.img=[];
+
+                ImageArray(QC.progressive_frame)=ImageStruct;
+                
+                % try not to copy around too many buffers if not necessary
+                if ret==0 && QC.save_images
+                    ImageStruct.img=QC.unpackImgBuffer(pImg,w,h,channels,bp);
                 end
                 
-                ImageArray(QC.progressive_frame).datetime_readout=t_readout;
-                ImageArray(QC.progressive_frame).exp=texp;
-                ImageArray(QC.progressive_frame).gain=QC.gain;
-                ImageArray(QC.progressive_frame).offset=QC.offset;
+                if ret==0 && QC.memory_images
+                    if QC.save_images
+                        ImageArray(QC.progressive_frame).img=ImageStruct.img;
+                    else
+                        ImageArray(QC.progressive_frame).img=...
+                            QC.unpackImgBuffer(pImg,w,h,channels,bp);
+                    end
+                end
 
                 % if write to a file
                 if QC.save_images
-                    save_image(QC,ImageArray(QC.progressive_frame))
+                    QC.writeImageFile(QC,ImageStruct)
                 end
             end
                        
@@ -466,12 +478,12 @@ classdef QHYccd < handle
             end
         end
         
-        function save_image(QC,ImgStruct)
+        function writeImageFile(QC,ImgStruct)
             % Save the image QC.progressive_frame
             % For the very beginning in a .mat file, in future in a
             %  format TBD
             % The file name is derived from fields of QC
-            save([QC.save_path,num2str(QC.progressive_frame),'.mat'],ImgStruct);
+            save([QC.save_path,num2str(QC.progressive_frame),'.mat'],'ImgStruct');
         end
     end
     

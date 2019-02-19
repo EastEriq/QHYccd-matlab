@@ -49,5 +49,5 @@ Class usage:
     QC.gain=1000;
     QC.color=true;
     QC.sequence_frames=5;
-    cellImg=take_sequence_blocking(QC)
-    imagesc(cellImg{3})
+    ImgStruct=take_sequence_blocking(QC)
+    imagesc(ImgStruct(3).img)
