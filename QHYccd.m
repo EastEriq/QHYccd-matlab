@@ -36,22 +36,30 @@ classdef QHYccd < handle
         bitDepth= 16;
         temperature = NaN;
 
-        % these two don't have getters yet, no SDK function,
+        % these don't have getters yet, no SDK function,
         %  could perhaps use a hidden property to store the last set value
         color = false; % whether to acquire images as 3x8bit, with debayer
         binning = 1;
+        ROI =[0,0,0,0];
     end
     
     properties
         % class properties affecting the behavior of methods, default
         %   values
-        sequence_frames = 1;
-        verbose = false; % true prints out debug information
+        
+        % for image sequences:
+        sequence_frames = 1; % number of live images to acquire in a sequence 
+        save_path = ''; % path where to save images if required
+        grabbing_GUI = true; % show a GUI for e.g. aborting a sequence acquisition
+        save_images = false; % save images to files as they are taken
+        memory_images = true; % store all the images in a structure array
+        
+        verbose = false; % if true, printout of debug information
     end
     
     properties (GetAccess = public, SetAccess = private)
         % Read only fields, results of the methods
-        Success  = false;   % true if method worked ok
+        success  = false;   % true if method worked ok
         progressive_frame = 0; % image of a sequence already available
         id  = ''; % literal camera id; cannot be set, it might be useful to
                   % open a specific camera, scanning all the names
@@ -62,7 +70,7 @@ classdef QHYccd < handle
     end
     
     properties (Constant = true)
-        % it would be nice if there was a way to understand if the camera
+        % it would be nice if there was a way to understand whether the camera
         %  is connected via USB2 or USB3, to get the current image
         %  acquisition weight, and to compute the estimated transfer time,
         %  for timeouts
@@ -77,12 +85,16 @@ classdef QHYccd < handle
     end
     
     
-    %% Connecting and disconnecting with the library could be static methods?
-    %    As for delete(), not
+    %% class Constructor and Destructor
     methods
-        
+        % (Connecting and disconnecting with the library could be static methods?
+        %    As for delete(), it cannot)
+     
         % Constructor
-        function QC=QHYccd(camera)
+        function QC=QHYccd(cameranum)
+            %  cameranum: int, number of the camera to open (as enumerated by the SDK)
+            %     May be omitted. In that case the last camera is referred to
+
             % Load the library if needed (this is global?)           
             if ~libisloaded('libqhyccd')
                 loadlibrary('libqhyccd','headers/qhyccd_matlab.h',...
@@ -94,7 +106,7 @@ classdef QHYccd < handle
             
             % the constructor tries also to open the camera
             if exist('camera','var')
-                open(QC,camera);
+                open(QC,cameranum);
             else
                 open(QC);
             end
@@ -122,7 +134,12 @@ classdef QHYccd < handle
     %% Open and close the communication with the camera
     methods
         function open(QC,cameranum)
-            
+            % Open the connection with a specific camera, and
+            %  read from it some basic information like color capability,
+            %  physical dimensions, etc.
+            %  cameranum: int, number of the camera to open (as enumerated by the SDK)
+            %     May be omitted. In that case the last camera is referred to
+             
             num=ScanQHYCCD;
             if QC.verbose
                 fprintf('%d QHY cameras found\n',num);
@@ -151,6 +168,8 @@ classdef QHYccd < handle
                 QC.effective_area.sxEff,QC.effective_area.syEff]=...
                          GetQHYCCDEffectiveArea(QC.camhandle);
             
+            % warning: this returns strange numbers, which would change
+            %  if GetQHYCCDOverScanArea is called after a SetResolution
             [ret3,QC.overscan_area.x1Over,QC.overscan_area.y1Over,...
                 QC.overscan_area.sxOver,QC.overscan_area.syOver]=...
                               GetQHYCCDOverScanArea(QC.camhandle);
@@ -164,67 +183,73 @@ classdef QHYccd < handle
                     QC.physical_size.nx,QC.physical_size.ny,...
                     QC.physical_size.pixelw,QC.physical_size.pixelh,...
                      bp_supported)
-                fprintf(' effective chip area: (%d,%d)+(%d,%d)\n',...
+                fprintf(' effective chip area: (%d,%d)+(%dx%d)\n',...
                     QC.effective_area.x1Eff,QC.effective_area.y1Eff,...
                     QC.effective_area.sxEff,QC.effective_area.syEff);
-                fprintf(' overscan area: (%d,%d)+(%d,%d)\n',...
+                fprintf(' overscan area: (%d,%d)+(%dx%d)\n',...
                     QC.overscan_area.x1Over,QC.overscan_area.y1Over,...
                     QC.overscan_area.sxOver,QC.overscan_area.syOver);
                 if colorAvailable, fprintf(' Color camera\n'); end
             end
             
-            QC.Success = (ret1==0 & ret2==0 & ret3==0);
+            QC.success = (ret1==0 & ret2==0 & ret3==0);
                         
             % put here also some plausible parameter settings which are
             %  not likely to be changed
-            SetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_USBTRAFFIC,30);
-            SetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_OFFSET,0);
             
-            % ROI -- TODO
+            QC.offset=0;
             QC.color=false;
+
+            % USBtraffic value is said to affect glow. 30 is the value
+            %   normally found in demos, it may need to be changed, also
+            %   depending on USB2/3
+            SetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_USBTRAFFIC,30);
             
+            % set full area as ROI (?) -- wishful
             if QC.color
-                SetQHYCCDResolution(QC.camhandle,0,0,...
-                    QC.physical_size.nx,QC.physical_size.ny);
+                QC.ROI=[0,0,QC.physical_size.nx,QC.physical_size.ny];
             else
                 % this is problematic in color mode
                 SetQHYCCDParam(QC.camhandle,qhyccdControl.CAM_IGNOREOVERSCAN_INTERFACE,1);
-                SetQHYCCDResolution(QC.camhandle,...
-                    QC.effective_area.x1Eff,QC.effective_area.y1Eff,...
-                    QC.effective_area.sxEff,QC.effective_area.syEff);
+                QC.ROI=[QC.effective_area.x1Eff,QC.effective_area.y1Eff,...
+                        QC.effective_area.sxEff,QC.effective_area.syEff];
             end
             
         end
         
         function close(QC)
+            % Close the connection with the camera registered in the
+            %  current camera object
  
             % don't try co lose an invalid camhandle, it would crash matlab
             if ~isempty(QC.camhandle)
                 % check this status, which may fail
-                QC.Success=(CloseQHYCCD(QC.camhandle)==0);
+                QC.success=(CloseQHYCCD(QC.camhandle)==0);
             end
             % null the handle so that other methods can't talk anymore to it
             QC.camhandle=[];
             
         end
+    end
 
-        %% camera parameters setters/getters 
+    %% camera parameters setters/getters
+    methods
         
         function set.temperature(QC,Temp)
             % set the target sensor temperature in Celsius
-            QHYccd.Success=ControlQHYCCDTemp(QC.camhandle,Temp);
+            QHYccd.success=ControlQHYCCDTemp(QC.camhandle,Temp);
         end
         
         function Temp=get.temperature(QC)
             Temp=GetQHYCCDParam(QC.camhandle,qhyccdControl.CAM_CHIPTEMPERATURESENSOR_INTERFACE);
             % I guess that error is Temp=FFFFFFFF, check
-            QC.Success = (Temp>-100 & Temp<100);
+            QC.success = (Temp>-100 & Temp<100);
         end
         
         function set.expTime(QC,ExpTime)
             % ExpTime in seconds
             if QC.verbose, fprintf('setting exposure time = %f\n',ExpTime); end
-            QC.Success=...
+            QC.success=...
                 (SetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_EXPOSURE,ExpTime*1e6)==0);            
         end
         
@@ -232,39 +257,51 @@ classdef QHYccd < handle
             % ExpTime in seconds
             ExpTime=GetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_EXPOSURE)/1e6;
             if QC.verbose, fprintf('read exposure time = %f\n',ExpTime); end
-            QC.Success=(ExpTime~=1e6*hex2dec('FFFFFFFF'));            
+            QC.success=(ExpTime~=1e6*hex2dec('FFFFFFFF'));            
         end
         
         function set.gain(QC,Gain)
-            QC.Success=(SetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_GAIN,Gain)==0);          
+            % for an explanation of gain & offset vs. dynamics, see
+            %  https://www.qhyccd.com/bbs/index.php?topic=6281.msg32546#msg32546
+            %  https://www.qhyccd.com/bbs/index.php?topic=6309.msg32704#msg32704
+            QC.success=(SetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_GAIN,Gain)==0);          
         end
         
         function Gain=get.gain(QC)
             Gain=GetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_GAIN);
             % check whether err=double(FFFFFFFF)...
-            QC.Success=(Gain>0 & Gain<2e6);
+            QC.success=(Gain>0 & Gain<2e6);
         end
         
         function set.offset(QC,offset)
-            QC.Success=(SetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_OFFSET,offset)==0);          
+            QC.success=(SetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_OFFSET,offset)==0);          
         end
         
         function offset=get.offset(QC)
+            % Offset seems to be a sort of bias, black level
             offset=GetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_OFFSET);
             % check whether err=double(FFFFFFFF)...
-            QC.Success=(offset>0 & offset<2e6);
+            QC.success=(offset>0 & offset<2e6);
         end
         
         function set.bitDepth(QC,BitDepth)
-            % default has to be 16bit
+            % BitDepth: 8 or 16 (bit). My understanding is that this is in
+            %  first place a communication setting, which however implies
+            %  the scaling of the raw ADC readout. IIUC, e.g. a 14bit ADC
+            %  readout is upshifted to full 16 bit range in 16bit mode.
             SetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_TRANSFERBIT,BitDepth);
-            QC.Success=(SetQHYCCDBitsMode(QC.camhandle,BitDepth)==0);
+            % There is also a second SDK function for setting this. I don't
+            %  know if they are *really* equivalent. In doubt call both.
+            QC.success=(SetQHYCCDBitsMode(QC.camhandle,BitDepth)==0);
+
+            % ensure that color is set off if 16 bit (otherwise segfault!)
+            if BitDepth==16; QC.color=false; end
         end
 
         function bitDepth=get.bitDepth(QC)
             bitDepth=GetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_TRANSFERBIT);
             % check whether err=double(FFFFFFFF)...
-            QC.Success=(bitDepth==8 | bitDepth==16);
+            QC.success=(bitDepth==8 | bitDepth==16);
         end
 
         
@@ -273,9 +310,9 @@ classdef QHYccd < handle
             % for the QHY367, 1x1 and 2x2 seem to work; NxN with N>2 gives error,
             %  NxM gives no error, but all are uneffective and fall back to 1x1
             if SetQHYCCDBinMode(QC.camhandle,binning,binning)==0
-                QC.Success=true;
+                QC.success=true;
             else
-                QC.Success=false;
+                QC.success=false;
             end
         end
         
@@ -284,7 +321,7 @@ classdef QHYccd < handle
                   
         function set.color(QC,ColorMode)
             % default has to be bw
-             QC.Success=(SetQHYCCDDebayerOnOff(QC.camhandle,ColorMode)==0);
+             QC.success=(SetQHYCCDDebayerOnOff(QC.camhandle,ColorMode)==0);
              if ColorMode
                  QC.bitDepth=8; % segfault in buffer -> image otherwise
              end
@@ -294,8 +331,27 @@ classdef QHYccd < handle
             color=false; % placeholder
         end
         
-        %% main image taking function
+        % ROI - assuming that this is what the SDK calls "Resolution"
+        function set.ROI(QC,resolution)
+            % resolution is [x1,y1,sizex,sizey]
+            %  I highly suspect that this setting is very problematic
+            %   especially in color mode.
+            %  Safe values should be [0,0,physical_size.nx,physical_size.ny]
+            x1=resolution(1); y1=resolution(2); sx=resolution(3); sy=resolution(4);
+            if QC.verbose
+                fprintf('setting ROI to (%d,%d)+(%dx%d)\n',x1,y1,sx,sy);
+            end
+            QC.success=(SetQHYCCDResolution(QC.camhandle,x1,y1,sx,sy)==0);
+        end
         
+        % there is no SDK reader of the "resolution", go figure
+        
+    end
+    
+    %% methods applying to a specific camera once communication with it is open
+    methods
+        
+        % main image taking function
         function ImageArray=take_sequence_blocking(QC)
             % take N live images. N=1 is admitted, and actually
             %  more reliable that setting the camera in single shot mode
@@ -309,19 +365,30 @@ classdef QHYccd < handle
             
             texp=QC.expTime; % local variable; dont call SDK every time!
             
+            % allocate the output array. The problem is that we don't
+            %  really know whether w and h returned by GetQHYCCDLiveFrame()
+            %  correspond to the sensor resolution, w/o overscan or what
+            ImageArray=struct('img',[],'datetime_readout',[],'exp',[],...
+                             'gain',[],'offset',[]);
+
+            if QC.grabbing_GUI
+                 fn=figure('Position',[200,200,240,60],'menubar','none',...
+                     'name','QHY acquisition control','numberTitle','off');
+                 btn=uicontrol('Style','Togglebutton','Position',[20 20 180 30],...
+                     'String','abort grabbing');
+            end
+
             SetQHYCCDStreamMode(QC.camhandle,1);
 
             BeginQHYCCDLive(QC.camhandle);
            
-            % allocate the output array. The problem is that we don't
-            %  really know whether w and h returned by GetQHYCCDLiveFrame()
-            %  correspond to the sensor resolution, w/o overscan or what
-            ImageArray=cell(QC.sequence_frames,1);
-            
-            QC.progressive_frame=0;
-            while QC.progressive_frame<QC.sequence_frames
+            QC.progressive_frame=0; 
+            aborting=false;
+            while QC.progressive_frame<QC.sequence_frames && ~aborting
                 ret=-1; i=0; tic;
-                while ret ~=0 && toc<(texp+QC.timeout)% add here a timeout
+                while ret ~=0 && toc<(texp+QC.timeout) && ~aborting
+                    if QC.grabbing_GUI, aborting=get(btn,'Value'); end
+                    
                     % problem: both "image not ready" and "framebuffer overrun"
                     %  return FFFFFFFF. Like this, the while exits only
                     %  only if t_exp>t_transfer and no other error happens
@@ -330,7 +397,12 @@ classdef QHYccd < handle
                             QC.physical_size.nx,QC.physical_size.ny,...
                             QC.bitDepth,pImg);
                     % (what sizes exactly should be passed for a ROI, instead?)
-                    if ret~=0, pause(0.1); end
+                    if ret~=0
+                        pause(0.1);
+                        t_readout=NaN;
+                    else
+                        t_readout=now;
+                    end
                     i=i+1;
                     if QC.verbose
                         fprintf(' check live image %d, attempt %d, code %s\n',...
@@ -339,20 +411,33 @@ classdef QHYccd < handle
                 end
                 QC.progressive_frame=QC.progressive_frame+1;
                 
-                if ret==0
-                    ImageArray{QC.progressive_frame}=...
-                        QC.unpackImgBuffer(pImg,w,h,channels,bp);
+                if ret==0 && QC.memory_images
+                    ImageArray(QC.progressive_frame).img=QC.unpackImgBuffer(pImg,w,h,channels,bp);
                 else
-                    ImageArray{QC.progressive_frame}=[];
+                    ImageArray(QC.progressive_frame).img=[];
                 end
+                
+                ImageArray(QC.progressive_frame).datetime_readout=t_readout;
+                ImageArray(QC.progressive_frame).exp=texp;
+                ImageArray(QC.progressive_frame).gain=QC.gain;
+                ImageArray(QC.progressive_frame).offset=QC.offset;
 
+                % if write to a file
+                if QC.save_images
+                    save_image(QC,ImageArray(QC.progressive_frame))
+                end
             end
                        
             StopQHYCCDLive(QC.camhandle);
             
+            if QC.grabbing_GUI
+                delete(btn);
+                delete(fn);
+            end
+            
             clear pImg
             
-            QC.Success=(QC.progressive_frame==QC.sequence_frames & ret==0);
+            QC.success=(QC.progressive_frame==QC.sequence_frames & ret==0);
 
         end
             
@@ -361,6 +446,7 @@ classdef QHYccd < handle
     %% Private methods
     methods (Access = private, Static)
         function img=unpackImgBuffer(pImg,w,h,channels,bp)
+            % Conversion of an image buffer to a matlab image
             % trying to make this work for color/bw, 8/16bit, binning
             
             % IIUC https://www.qhyccd.com/bbs/index.php?topic=6038.msg31725#msg31725
@@ -379,8 +465,15 @@ classdef QHYccd < handle
                 end
             end
         end
+        
+        function save_image(QC,ImgStruct)
+            % Save the image QC.progressive_frame
+            % For the very beginning in a .mat file, in future in a
+            %  format TBD
+            % The file name is derived from fields of QC
+            save([QC.save_path,num2str(QC.progressive_frame),'.mat'],ImgStruct);
+        end
     end
-    
     
 end
 
