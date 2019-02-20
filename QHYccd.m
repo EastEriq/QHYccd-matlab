@@ -80,8 +80,10 @@ classdef QHYccd < handle
     properties (Hidden = true)        
         camhandle   % handle to the camera talked to - no need for the external
                     % consumer to know it
-        %pImg  % pointer to the image buffer (can we gain anything in going
+        pImg  % pointer to the image buffer (can we gain anything in going
               %  to a double buffer model?)
+        GUI % auxiliary GUI, e.g. for aborting a sequence acquisition. A hidden
+            %  property so that it can be passed along functions
     end
     
     
@@ -106,9 +108,9 @@ classdef QHYccd < handle
             
             % the constructor tries also to open the camera
             if exist('cameranum','var')
-                open(QC,cameranum);
+                open_camera(QC,cameranum);
             else
-                open(QC);
+                open_camera(QC);
             end
         end
         
@@ -116,7 +118,7 @@ classdef QHYccd < handle
         function delete(QC)
             
             % make sure we close the communication, if not done already
-            close(QC); % ignore result, may be closed already
+            close_camera(QC); % ignore result, may be closed already
             
             % clear QC.pImg
             
@@ -133,7 +135,7 @@ classdef QHYccd < handle
     
     %% Open and close the communication with the camera
     methods
-        function open(QC,cameranum)
+        function open_camera(QC,cameranum)
             % Open the connection with a specific camera, and
             %  read from it some basic information like color capability,
             %  physical dimensions, etc.
@@ -218,7 +220,7 @@ classdef QHYccd < handle
             
         end
         
-        function close(QC)
+        function close_camera(QC)
             % Close the connection with the camera registered in the
             %  current camera object
  
@@ -249,7 +251,7 @@ classdef QHYccd < handle
         
         function set.expTime(QC,ExpTime)
             % ExpTime in seconds
-            if QC.verbose, fprintf('setting exposure time = %f\n',ExpTime); end
+            if QC.verbose, fprintf('setting exposure time to %f sec.\n',ExpTime); end
             QC.success=...
                 (SetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_EXPOSURE,ExpTime*1e6)==0);            
         end
@@ -257,7 +259,7 @@ classdef QHYccd < handle
         function ExpTime=get.expTime(QC)
             % ExpTime in seconds
             ExpTime=GetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_EXPOSURE)/1e6;
-            if QC.verbose, fprintf('read exposure time = %f\n',ExpTime); end
+            % if QC.verbose, fprintf('Exposure time is %f sec.\n',ExpTime); end
             QC.success=(ExpTime~=1e6*hex2dec('FFFFFFFF'));            
         end
         
@@ -290,6 +292,10 @@ classdef QHYccd < handle
             %  first place a communication setting, which however implies
             %  the scaling of the raw ADC readout. IIUC, e.g. a 14bit ADC
             %  readout is upshifted to full 16 bit range in 16bit mode.
+            % Constrain BitDepth to 8|16, the functions wouldn't give any
+            %  error anyway for different values.
+            BitDepth=max(min(round(BitDepth/8)*8,16),8);
+            if QC.verbose; fprintf('Setting depth to %dbit\n',BitDepth); end
             SetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_TRANSFERBIT,BitDepth);
             % There is also a second SDK function for setting this. I don't
             %  know if they are *really* equivalent. In doubt call both.
@@ -339,10 +345,14 @@ classdef QHYccd < handle
             %   especially in color mode.
             %  Safe values should be [0,0,physical_size.nx,physical_size.ny]
             x1=resolution(1); y1=resolution(2); sx=resolution(3); sy=resolution(4);
-            if QC.verbose
-                fprintf('setting ROI to (%d,%d)+(%dx%d)\n',x1,y1,sx,sy);
-            end
             QC.success=(SetQHYCCDResolution(QC.camhandle,x1,y1,sx,sy)==0);
+            if QC.verbose
+                if QC.success
+                    fprintf('ROI successfully set to (%d,%d)+(%dx%d)\n',x1,y1,sx,sy);
+                else
+                    fprintf('set ROI to (%d,%d)+(%dx%d) FAILED\n',x1,y1,sx,sy);
+                end
+            end
         end
         
         % there is no SDK reader of the "resolution", go figure
@@ -358,101 +368,144 @@ classdef QHYccd < handle
             %  more reliable that setting the camera in single shot mode
             % The camera workings require that for Nimages>1,
             %   t_exp > t_readout. The latter is about 2sec on USB2, 0.2sec on USB3
-            % ImageArray cell of images of size [X, Y]
-            
-            imlength=GetQHYCCDMemLength(QC.camhandle);
-            
-            pImg=libpointer('uint8Ptr',zeros(imlength,1,'uint8'));
-            
-            texp=QC.expTime; % local variable; dont call SDK at every iteartion!
-            
-            % structures for the image and array of images
-            ImageStruct=struct('img',[],'datetime_readout',[],'exp',[],...
+             
+            % cell structure for the array of images
+            ImageArray=struct('img',[],'datetime_readout',[],'exp',[],...
                              'gain',[],'offset',[]);
 
-            ImageArray=struct(ImageStruct);
-            
-            if QC.grabbing_GUI
-                 fn=figure('Position',[200,200,240,60],'menubar','none',...
-                     'name','QHY acquisition control','numberTitle','off');
-                 btn=uicontrol('Style','Togglebutton','Position',[20 20 180 30],...
-                     'String','abort grabbing');
-            end
+            start_sequence_take(QC)
 
-            SetQHYCCDStreamMode(QC.camhandle,1);
-
-            BeginQHYCCDLive(QC.camhandle);
-           
-            QC.progressive_frame=0; 
-            aborting=false;
+            aborting=false; ret=-1;
             while QC.progressive_frame<QC.sequence_frames && ~aborting
-                ret=-1; i=0; tic;
-                while ret ~=0 && toc<(texp+QC.timeout) && ~aborting
-                    if QC.grabbing_GUI, aborting=get(btn,'Value'); end
-                    
-                    % problem: both "image not ready" and "framebuffer overrun"
-                    %  return FFFFFFFF. Like this, the while exits only
-                    %  only if t_exp>t_transfer and no other error happens
-                    [ret,w,h,bp,channels]=...
-                        GetQHYCCDLiveFrame(QC.camhandle,...
-                            QC.physical_size.nx,QC.physical_size.ny,...
-                            QC.bitDepth,pImg);
-                    % (what sizes exactly should be passed for a ROI, instead?)
-                    if ret~=0
-                        pause(0.1);
-                        t_readout=NaN;
-                    else
-                        t_readout=now;
-                    end
-                    i=i+1;
-                    if QC.verbose
-                        fprintf(' check live image %d, attempt %d, code %s\n',...
-                                 QC.progressive_frame+1,i,dec2hex(ret));
-                    end
-                end
-                QC.progressive_frame=QC.progressive_frame+1;
-                
-                ImageStruct.datetime_readout=t_readout;
-                ImageStruct.exp=texp;
-                ImageStruct.gain=QC.gain;
-                ImageStruct.offset=QC.offset;
-                ImageStruct.img=[];
 
-                ImageArray(QC.progressive_frame)=ImageStruct;
-                
-                % try not to copy around too many buffers if not necessary
-                if ret==0 && QC.save_images
-                    ImageStruct.img=QC.unpackImgBuffer(pImg,w,h,channels,bp);
-                end
-                
-                if ret==0 && QC.memory_images
-                    if QC.save_images
-                        ImageArray(QC.progressive_frame).img=ImageStruct.img;
-                    else
-                        ImageArray(QC.progressive_frame).img=...
-                            QC.unpackImgBuffer(pImg,w,h,channels,bp);
-                    end
-                end
-
-                % if write to a file
-                if QC.save_images
-                    QC.writeImageFile(QC,ImageStruct)
-                end
-            end
-                       
-            StopQHYCCDLive(QC.camhandle);
-            
-            if QC.grabbing_GUI
-                delete(btn);
-                delete(fn);
+                [ret,aborting,ImageArray]=poll_live_image(QC,ImageArray);
+ 
             end
             
-            clear pImg
+            stop_sequence_take(QC)
             
             QC.success=(QC.progressive_frame==QC.sequence_frames & ret==0);
 
         end
+        
+        % Setting the scenes for taking a sequence of images
+        function start_sequence_take(QC)
+                        % Allocate the image buffer. The maximal length is in fact only
+            %  needed only for full frame color images including overscan
+            %  areas; for all other cases (notably when only a ROI, or binning
+            %  is requested) it probably could be smaller, making transfer
+            %  time much shorter. However, the SDK doesn't provide a safe way
+            %  to determine this size, and hence we allocate a lot to stay
+            %  safe from segfaults.
+            imlength=GetQHYCCDMemLength(QC.camhandle);
+            QC.pImg=libpointer('uint8Ptr',zeros(imlength,1,'uint8'));
+                                    
+            if QC.grabbing_GUI
+                 QC.GUI.fn=figure('Position',[200,200,240,60],'menubar','none',...
+                     'name','QHY acquisition control','numberTitle','off');
+                 QC.GUI.btn=uicontrol('Style','Togglebutton','Position',[20 20 180 30],...
+                     'String','abort grabbing');
+            end
+
+            QC.progressive_frame=0;
             
+            SetQHYCCDStreamMode(QC.camhandle,1);
+
+            BeginQHYCCDLive(QC.camhandle);
+           
+         end
+           
+        % Cleaning up after taking a sequence of images
+        function stop_sequence_take(QC)
+                                   
+            StopQHYCCDLive(QC.camhandle);
+            
+            if QC.grabbing_GUI
+                delete(QC.GUI.btn);
+                delete(QC.GUI.fn);
+            end
+            
+            delete(QC.pImg)
+
+        end
+        
+        
+        % Polling for a single live image ready
+        function [ret,aborting,ImageArray]=poll_live_image(QC,ImageArray)
+        % (blocking), monolithic function filling ImageArray and eventually
+        %  writing output files; in provision for being called periodically
+        %  by a timer or a callback, if ever possible within the limitation
+        %  of the framebuffer which must be read timely
+        
+            % Create an additional scalar image structure. This is done so that
+            %  the copy, eventually filled with image data, can be passed
+            %  to the file saving function, while the data itself may not
+            %  be stored in ImageArray which is kept in memory.
+            ImageStruct=struct(ImageArray(1));
+
+            texp=QC.expTime; % local variable; dont call SDK at every iteartion!
+            
+            ret=-1; i=0; aborting=false; tic;
+            while ret ~=0 && toc<(texp+QC.timeout) && ~aborting
+                if QC.grabbing_GUI, aborting=get(QC.GUI.btn,'Value'); end
+                
+                % problem: both "image not ready" and "framebuffer overrun"
+                %  return FFFFFFFF. Like this, the while exits only
+                %  only if t_exp>t_transfer and no other error happens
+                [ret,w,h,bp,channels]=...
+                    GetQHYCCDLiveFrame(QC.camhandle,...
+                    QC.physical_size.nx,QC.physical_size.ny,...
+                    QC.bitDepth,QC.pImg);
+                % I presume that, in case of binning or ROI, the transfer of
+                %  much less than physical_size.nx*ny could be asked,
+                %  but the SDK doesn't tell that to us a priori. Relying
+                %  on values which have been attemped to be set (but
+                %  maybe not accepted) is dangerous.
+                if ret~=0
+                    pause(0.1);
+                    t_readout=NaN;
+                else
+                    t_readout=now;
+                end
+                i=i+1;
+                if QC.verbose
+                    fprintf(' check live image %d, time elapsed %.3f sec., code %s\n',...
+                        QC.progressive_frame+1,toc,dec2hex(ret));
+                end
+            end
+            
+            if ~aborting
+                QC.progressive_frame=QC.progressive_frame+1;
+            end
+            
+            ImageStruct.datetime_readout=t_readout;
+            ImageStruct.exp=texp;
+            ImageStruct.gain=QC.gain;
+            ImageStruct.offset=QC.offset;
+            ImageStruct.img=[];
+            
+            ImageArray(QC.progressive_frame)=ImageStruct;
+            
+            % try not to copy around too many buffers if not necessary
+            if ret==0 && QC.save_images
+                ImageStruct.img=QC.unpackImgBuffer(QC.pImg,w,h,channels,bp);
+            end
+            
+            if ret==0 && QC.memory_images
+                if QC.save_images
+                    ImageArray(QC.progressive_frame).img=ImageStruct.img;
+                else
+                    ImageArray(QC.progressive_frame).img=...
+                        QC.unpackImgBuffer(QC.pImg,w,h,channels,bp);
+                end
+            end
+            
+            % if write to a file
+            if QC.save_images
+                QC.writeImageFile(QC,ImageStruct)
+            end
+            
+        end
     end
     
     %% Private methods
