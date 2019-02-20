@@ -75,6 +75,10 @@ classdef QHYccd < handle
         %  acquisition weight, and to compute the estimated transfer time,
         %  for timeouts
         timeout=2.8;
+        
+        % this is sort of a typedef
+        ImageStructPrototype = struct('img',[],'datetime_readout',[],'exp',[],...
+                                      'gain',[],'offset',[]);
     end
         
     properties (Hidden = true)        
@@ -85,7 +89,7 @@ classdef QHYccd < handle
         GUI % auxiliary GUI, e.g. for aborting a sequence acquisition. A hidden
             %  property so that it can be passed along functions
     end
-    
+        
     
     %% class Constructor and Destructor
     methods
@@ -345,6 +349,13 @@ classdef QHYccd < handle
             %   especially in color mode.
             %  Safe values should be [0,0,physical_size.nx,physical_size.ny]
             x1=resolution(1); y1=resolution(2); sx=resolution(3); sy=resolution(4);
+            
+            % try to clip unreasonable values
+            x1=max(min(x1,QC.physical_size.nx-1),0);
+            y1=max(min(y1,QC.physical_size.ny-1),0);
+            sx=max(min(sx,QC.physical_size.nx-x1),1);
+            sy=max(min(sy,QC.physical_size.ny-y1),1);
+            
             QC.success=(SetQHYCCDResolution(QC.camhandle,x1,y1,sx,sy)==0);
             if QC.verbose
                 if QC.success
@@ -370,15 +381,14 @@ classdef QHYccd < handle
             %   t_exp > t_readout. The latter is about 2sec on USB2, 0.2sec on USB3
              
             % cell structure for the array of images
-            ImageArray=struct('img',[],'datetime_readout',[],'exp',[],...
-                             'gain',[],'offset',[]);
+            ImageArray=struct(QC.ImageStructPrototype);
 
             start_sequence_take(QC)
 
             aborting=false; ret=-1;
             while QC.progressive_frame<QC.sequence_frames && ~aborting
 
-                [ret,aborting,ImageArray]=poll_live_image(QC,ImageArray);
+                [ImageArray,ret,aborting]=poll_live_image(QC,ImageArray);
  
             end
             
@@ -390,7 +400,8 @@ classdef QHYccd < handle
         
         % Setting the scenes for taking a sequence of images
         function start_sequence_take(QC)
-                        % Allocate the image buffer. The maximal length is in fact only
+            
+            % Allocate the image buffer. The maximal length is in fact only
             %  needed only for full frame color images including overscan
             %  areas; for all other cases (notably when only a ROI, or binning
             %  is requested) it probably could be smaller, making transfer
@@ -431,17 +442,22 @@ classdef QHYccd < handle
         
         
         % Polling for a single live image ready
-        function [ret,aborting,ImageArray]=poll_live_image(QC,ImageArray)
+        function [ImageArray,ret,aborting]=poll_live_image(QC,ImageArray)
         % (blocking), monolithic function filling ImageArray and eventually
         %  writing output files; in provision for being called periodically
         %  by a timer or a callback, if ever possible within the limitation
         %  of the framebuffer which must be read timely
         
+            % contemplate the call without an initial ImageArray
+            if ~exist('ImageArray','var')
+                ImageArray=struct(QC.ImageStructPrototype);
+            end
+            
             % Create an additional scalar image structure. This is done so that
             %  the copy, eventually filled with image data, can be passed
             %  to the file saving function, while the data itself may not
-            %  be stored in ImageArray which is kept in memory.
-            ImageStruct=struct(ImageArray(1));
+            %  be stored in ImageArray, which is kept in memory.
+            ImageStruct=struct(QC.ImageStructPrototype);
 
             texp=QC.expTime; % local variable; dont call SDK at every iteartion!
             
