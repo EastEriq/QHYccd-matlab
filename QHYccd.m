@@ -19,9 +19,7 @@
 %--------------------------------------------------------------------------
 
 classdef QHYccd < handle
-    
-    %%
-
+ 
     properties (Dependent = true)
         % read/write properties, settings of the camera, for which
         %  hardware query is involved.
@@ -209,7 +207,8 @@ classdef QHYccd < handle
             %  not likely to be changed
             
             QC.offset=0;
-            QC.color=false;
+            colormode=false; % (local variable because no getter)
+            QC.color=colormode;
 
             % USBtraffic value is said to affect glow. 30 is the value
             %   normally found in demos, it may need to be changed, also
@@ -217,7 +216,7 @@ classdef QHYccd < handle
             SetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_USBTRAFFIC,30);
             
             % set full area as ROI (?) -- wishful
-            if QC.color
+            if colormode
                 QC.ROI=[0,0,QC.physical_size.nx,QC.physical_size.ny];
             else
                 % this is problematic in color mode
@@ -341,11 +340,7 @@ classdef QHYccd < handle
                  QC.bitDepth=8; % segfault in buffer -> image otherwise
              end
         end
-        
-        function color=get.color(QC)
-            color=false; % placeholder
-        end
-        
+                
         % ROI - assuming that this is what the SDK calls "Resolution"
         function set.ROI(QC,resolution)
             % resolution is [x1,y1,sizex,sizey]
@@ -510,8 +505,15 @@ classdef QHYccd < handle
             ImageStruct.offset=QC.offset;
             ImageStruct.img=[];
             
-            ImageArray(QC.progressive_frame)=ImageStruct;
-            
+            if nargin>1
+                % grow ImageArray
+                N=QC.progressive_frame;
+            else
+                % return a scalar ImageArray with the image polled
+                N=1;
+            end
+            ImageArray(N)=ImageStruct;
+                
             % try not to copy around too many buffers if not necessary
             if ret==0 && QC.save_images
                 ImageStruct.img=QC.unpackImgBuffer(QC.pImg,w,h,channels,bp);
@@ -519,9 +521,9 @@ classdef QHYccd < handle
             
             if ret==0 && QC.memory_images
                 if QC.save_images
-                    ImageArray(QC.progressive_frame).img=ImageStruct.img;
+                    ImageArray(N).img=ImageStruct.img;
                 else
-                    ImageArray(QC.progressive_frame).img=...
+                    ImageArray(N).img=...
                         QC.unpackImgBuffer(QC.pImg,w,h,channels,bp);
                 end
             end
