@@ -121,6 +121,10 @@ classdef QHYccd < handle
         % Destructor
         function delete(QC)
             
+            % it shouldn't harm to try to stop the acquisition for good,
+            %  even if already stopped - and delete the image pointer QC.pImg
+            stop_sequence_take(QC)
+            
             % make sure we close the communication, if not done already
             close_camera(QC); % ignore result, may be closed already
             
@@ -430,13 +434,19 @@ classdef QHYccd < handle
         function stop_sequence_take(QC)
                                    
             StopQHYCCDLive(QC.camhandle);
-            
+
+            % delete objects, release pImg, but check first that they
+            %  exist. This to suppress warnings if this function is called twice,
+            %  or when acquisition hasn't been started at all
             if QC.grabbing_GUI
-                delete(QC.GUI.btn);
-                delete(QC.GUI.fn);
+                if isa(QC.GUI,'struct')
+                     delete(QC.GUI.fn);
+                end
             end
             
-            delete(QC.pImg)
+            if isa(QC.pImg,'lib.pointer')
+                delete(QC.pImg)
+            end
 
         end
         
