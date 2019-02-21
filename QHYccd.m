@@ -146,6 +146,7 @@ classdef QHYccd < handle
     
     %% Open and close the communication with the camera
     methods
+
         function open_camera(QC,cameranum)
             % Open the connection with a specific camera, and
             %  read from it some basic information like color capability,
@@ -252,7 +253,7 @@ classdef QHYccd < handle
         
         function set.temperature(QC,Temp)
             % set the target sensor temperature in Celsius
-            QHYccd.success=ControlQHYCCDTemp(QC.camhandle,Temp);
+            QC.success=ControlQHYCCDTemp(QC.camhandle,Temp);
         end
         
         function Temp=get.temperature(QC)
@@ -389,6 +390,15 @@ classdef QHYccd < handle
         %  If called after Live mode, it returns often a messed up image.
         %  It seems that color mode and bit depth need to be set again, but
         %   I don't always understand in which order
+
+            start_single_exposure(QC)
+        
+            ImageStruct=collect_single_exposure(QC);
+
+        end
+        
+        function start_single_exposure(QC)
+        % set up the scenes for taking a single exposure
             QC.progressive_frame=0;
             
             QC.allocate_image_buffer(QC)
@@ -401,15 +411,18 @@ classdef QHYccd < handle
                 pause(0.1)
             end
             
-            if QC.verbose
-                fprintf(' reading one frame in single exposure mode...\n');
-            end
+            QC.success=(ret==0);
+
+        end
+        
+        function ImageStruct=collect_single_exposure(QC)
+        % collect the exposed frame
             
             [ret,w,h,bp,channels]=...
                 GetQHYCCDSingleFrame(QC.camhandle,QC.physical_size.nx,...
                                      QC.physical_size.ny,QC.bitDepth,QC.pImg);
 
-            if ret==0;
+            if ret==0
                 t_readout=now;
                 QC.progressive_frame=1;
             end

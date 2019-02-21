@@ -1,6 +1,9 @@
 function [ret,w,h,bp,channels]=...
                GetQHYCCDSingleFrame(camhandle,w,h,bp,Pimg)
 
+% TODO: check whether Pw, Ph and Pbp need to pass input values. Maybe they are
+%  only for output, and we can remove w,h,bp from argin
+
 Pw=libpointer('uint32Ptr',w);
 Ph=libpointer('uint32Ptr',h);
 Pbp=libpointer('uint32Ptr',bp);
