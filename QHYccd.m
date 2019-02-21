@@ -87,6 +87,8 @@ classdef QHYccd < handle
                     % consumer to know it
         pImg  % pointer to the image buffer (can we gain anything in going
               %  to a double buffer model?)
+              % Shall we allocate it only once on open(QC), or, like now,
+              %  every time we start an acquisition?
         GUI % auxiliary GUI, e.g. for aborting a sequence acquisition. A hidden
             %  property so that it can be passed along functions
     end
@@ -382,7 +384,55 @@ classdef QHYccd < handle
     %% methods applying to a specific camera once communication with it is open
     methods
         
-        % main image taking function
+        function ImageStruct=take_single_exposure(QC)
+        % Take one image in single exposure mode, monolithic
+        %  If called after Live mode, it returns often a messed up image.
+        %  It seems that color mode and bit depth need to be set again, but
+        %   I don't always understand in which order
+            QC.progressive_frame=0;
+            
+            QC.allocate_image_buffer(QC)
+            
+            SetQHYCCDStreamMode(QC.camhandle,0);
+            
+            ret=ExpQHYCCDSingleFrame(QC.camhandle);
+            if ret==hex2dec('2001') % "QHYCCD_READ_DIRECTLY". No idea but
+                                    %   it is like that in the demoes
+                pause(0.1)
+            end
+            
+            if QC.verbose
+                fprintf(' reading one frame in single exposure mode...\n');
+            end
+            
+            [ret,w,h,bp,channels]=...
+                GetQHYCCDSingleFrame(QC.camhandle,QC.physical_size.nx,...
+                                     QC.physical_size.ny,QC.bitDepth,QC.pImg);
+
+            if ret==0;
+                t_readout=now;
+                QC.progressive_frame=1;
+            end
+            
+            ImageStruct=struct(QC.ImageStructPrototype);
+            ImageStruct.datetime_readout=t_readout;
+            ImageStruct.exp=QC.expTime;
+            ImageStruct.gain=QC.gain;
+            ImageStruct.offset=QC.offset;
+            ImageStruct.img=QC.unpackImgBuffer(QC.pImg,w,h,channels,bp);
+
+            % if write to a file
+            if QC.save_images
+                QC.writeImageFile(QC,ImageStruct)
+            end
+            
+            QC.deallocate_image_buffer(QC)
+            
+            QC.success=(ret==0);
+
+        end
+        
+        % main image taking function (live mode, via FIFO (?) framebuffer)
         function ImageArray=take_sequence_blocking(QC)
             % take N live images. N=1 is admitted, and actually
             %  more reliable that setting the camera in single shot mode
@@ -410,15 +460,7 @@ classdef QHYccd < handle
         % Setting the scenes for taking a sequence of images
         function start_sequence_take(QC)
             
-            % Allocate the image buffer. The maximal length is in fact only
-            %  needed only for full frame color images including overscan
-            %  areas; for all other cases (notably when only a ROI, or binning
-            %  is requested) it probably could be smaller, making transfer
-            %  time much shorter. However, the SDK doesn't provide a safe way
-            %  to determine this size, and hence we allocate a lot to stay
-            %  safe from segfaults.
-            imlength=GetQHYCCDMemLength(QC.camhandle);
-            QC.pImg=libpointer('uint8Ptr',zeros(imlength,1,'uint8'));
+            QC.allocate_image_buffer(QC);
                                     
             if QC.grabbing_GUI
                  QC.GUI.fn=figure('Position',[200,200,240,60],'menubar','none',...
@@ -449,10 +491,8 @@ classdef QHYccd < handle
                 end
             end
             
-            if isa(QC.pImg,'lib.pointer')
-                delete(QC.pImg)
-            end
-
+            QC.deallocate_image_buffer(QC)
+            
         end
         
         
@@ -548,6 +588,27 @@ classdef QHYccd < handle
     
     %% Private methods
     methods (Access = private, Static)
+        
+        function allocate_image_buffer(QC)
+            % Allocate the image buffer. The maximal length is in fact only
+            %  needed only for full frame color images including overscan
+            %  areas; for all other cases (notably when only a ROI, or binning
+            %  is requested) it probably could be smaller, making transfer
+            %  time much shorter. However, the SDK doesn't provide a safe way
+            %  to determine this size, and hence we allocate a lot to stay
+            %  safe from segfaults.
+            imlength=GetQHYCCDMemLength(QC.camhandle);
+            QC.pImg=libpointer('uint8Ptr',zeros(imlength,1,'uint8'));
+        end
+
+        function deallocate_image_buffer(QC)
+            % check if the buffer is defined, so that the function can
+            %  be called harmlessly multiple times
+            if isa(QC.pImg,'lib.pointer')
+                delete(QC.pImg)
+            end
+        end
+        
         function img=unpackImgBuffer(pImg,w,h,channels,bp)
             % Conversion of an image buffer to a matlab image
             % trying to make this work for color/bw, 8/16bit, binning
