@@ -52,5 +52,5 @@ Class usage:
     ImgStruct=take_sequence_blocking(QC)
     imagesc(ImgStruct(3).img)
 
-See the script `timed_acquisition_example.m` for an example of timed acquisizion which releases the Matlab
+See the script `timed_acquisition_example.m` for an non-blocking example which releases the Matlab
 prompt for other tasks.

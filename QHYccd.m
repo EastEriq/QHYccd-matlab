@@ -59,12 +59,15 @@ classdef QHYccd < handle
         % Read only fields, results of the methods
         success  = false;   % true if method worked ok
         progressive_frame = 0; % image of a sequence already available
-        id  = ''; % literal camera id; cannot be set, it might be useful to
-                  % open a specific camera, scanning all the names
         physical_size=struct('chipw',[],'chiph',[],'pixelw',[],'pixelh',[],...
                              'nx',[],'ny',[]);
         effective_area=struct('x1Eff',[],'y1Eff',[],'sxEff',[],'syEff',[]);
         overscan_area=struct('x1Over',[],'y1Over',[],'sxOver',[],'syOver',[]);
+        
+        % readonly replies from the camera
+        id  = ''; % literal camera id; cannot be set, it might be useful to
+                  % open a specific camera, scanning all the names
+        expTimeLeft = NaN;
     end
     
     properties (Constant = true)
@@ -268,6 +271,13 @@ classdef QHYccd < handle
             ExpTime=GetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_EXPOSURE)/1e6;
             % if QC.verbose, fprintf('Exposure time is %f sec.\n',ExpTime); end
             QC.success=(ExpTime~=1e6*hex2dec('FFFFFFFF'));            
+        end
+        
+        function ExpTimeLeft=get.expTimeLeft(QC)
+            % ExpTime in seconds
+            ExpTimeLeft=GetQHYCCDExposureRemaining(QC.camhandle)/1e6;
+            % if QC.verbose, fprintf('Exposure time is %f sec.\n',ExpTime); end
+            QC.success=(ExpTimeLeft~=1e6*hex2dec('FFFFFFFF'));            
         end
         
         function set.gain(QC,Gain)
