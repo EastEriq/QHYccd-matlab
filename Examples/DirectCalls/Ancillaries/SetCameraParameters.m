@@ -1,5 +1,5 @@
 SetQHYCCDParam(camhandle,qhyccdControl.CONTROL_USBTRAFFIC,30);
-SetQHYCCDParam(camhandle,qhyccdControl.CONTROL_GAIN,4000);
+SetQHYCCDParam(camhandle,qhyccdControl.CONTROL_GAIN,100);
 SetQHYCCDParam(camhandle,qhyccdControl.CONTROL_OFFSET,0);
 SetQHYCCDParam(camhandle,qhyccdControl.CONTROL_EXPOSURE,2000000);
 

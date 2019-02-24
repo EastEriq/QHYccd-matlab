@@ -129,7 +129,11 @@ classdef QHYccd < handle
             stop_sequence_take(QC)
             
             % make sure we close the communication, if not done already
-            close_camera(QC); % ignore result, may be closed already
+            if (close_camera(QC)==0)
+                if QC.verbose, fprintf('Succesfully closed camera\n'), end
+            else
+                if QC.verbose, fprintf('Failed to close camera\n'), end
+            end
             
             % clear QC.pImg
             
@@ -233,14 +237,15 @@ classdef QHYccd < handle
             
         end
         
-        function close_camera(QC)
+        function ret=close_camera(QC)
             % Close the connection with the camera registered in the
             %  current camera object
  
             % don't try co lose an invalid camhandle, it would crash matlab
             if ~isempty(QC.camhandle)
                 % check this status, which may fail
-                QC.success=(CloseQHYCCD(QC.camhandle)==0);
+                ret=CloseQHYCCD(QC.camhandle);
+                QC.success=(ret==0);
             end
             % null the handle so that other methods can't talk anymore to it
             QC.camhandle=[];
@@ -419,8 +424,7 @@ classdef QHYccd < handle
         % collect the exposed frame
             
             [ret,w,h,bp,channels]=...
-                GetQHYCCDSingleFrame(QC.camhandle,QC.physical_size.nx,...
-                                     QC.physical_size.ny,QC.bitDepth,QC.pImg);
+                GetQHYCCDSingleFrame(QC.camhandle,QC.pImg);
 
             if ret==0
                 t_readout=now;
@@ -537,9 +541,7 @@ classdef QHYccd < handle
                 %  return FFFFFFFF. Like this, the while exits only
                 %  only if t_exp>t_transfer and no other error happens
                 [ret,w,h,bp,channels]=...
-                    GetQHYCCDLiveFrame(QC.camhandle,...
-                    QC.physical_size.nx,QC.physical_size.ny,...
-                    QC.bitDepth,QC.pImg);
+                    GetQHYCCDLiveFrame(QC.camhandle,QC.pImg);
                 % I presume that, in case of binning or ROI, the transfer of
                 %  much less than physical_size.nx*ny could be asked,
                 %  but the SDK doesn't tell that to us a priori. Relying

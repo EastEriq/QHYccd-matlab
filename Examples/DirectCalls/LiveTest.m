@@ -17,7 +17,7 @@ while ~get(btn,'Value')
         %  return FFFFFFFF. Like this, it will work steadily
         %  only if t_exp>t_transfer
         [ret,w,h,bp,channels]=...
-            GetQHYCCDLiveFrame(camhandle,w,h,bp,Pimg);
+            GetQHYCCDLiveFrame(camhandle,Pimg);
         i=i+1;
         title(sprintf('waiting image # %d, %d repeats, code %X',j,i,ret))
         drawnow

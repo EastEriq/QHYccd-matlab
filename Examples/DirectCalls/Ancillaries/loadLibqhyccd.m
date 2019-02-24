@@ -6,13 +6,13 @@
 if libisloaded('libqhyccd')
     unloadlibrary('libqhyccd')
 end
-[notfound,warnings]=loadlibrary('libqhyccd','../headers/qhyccd_matlab.h',...
-    'includepath','../headers');
+[notfound,warnings]=loadlibrary('libqhyccd','../../headers/qhyccd_matlab.h',...
+    'includepath','../../headers');
 
 %qhyfuns=libfunctions('libqhyccd','-full');
 %libfunctionsview('libqhyccd')
 
-addpath('../wrappers')
+addpath('../../wrappers')
 
 %quick way to look up the prototypes of imported functions:
 % WRONG % qhyfuns{cell2mat(strfind(qhyfuns,'Open'))>0}
