@@ -2,10 +2,12 @@ Matlab bindings for the QHYccd SDK
 ==================================
 
 For cameras produced by [QHYccd](https://www.qhyccd.com/).
- 
-This package is being tested with the combination
-Matlab 2015b/Ubuntu16/SDK v19.1.22.0 and a QHY367c camera connected on USB2,
-as well as on Matlab 2018b/Ubuntu18/SDK v19.1.22.0, QHY367c camera connected on USB3.
+
+This package has been tested with the combinations
+
++ Matlab 2015b/Ubuntu16/SDK v19.1.22.0 and a QHY367c camera connected on USB2,
++ Matlab 2018b-Ubuntu16/SDK 6.0.1 and QHY600 camera connected on USB2,
++ Matlab 2018b/Ubuntu18/SDK v19.1.22.0, QHY367c camera connected on USB3.
 
 ### Instructions:
 

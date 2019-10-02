@@ -20,27 +20,32 @@ Experiences and attempts while installing QHY software
  is out there, but a general API is
  ["announced"](https://github.com/qhyccd-lzr/QhyCmosCamera).
 
++ the versioning scheme of the QHY SDK is not the most clear. The latest versions of it have been posted  [on this QHY page](https://www.qhyccd.com/index.php?m=content&c=index&a=show&catid=127&id=163). Versions are referred either by semver or by date. For instance
+in my first go at these installations (2/2019) I
+got
+ [V4.0.12 a.k.a. LINUX_qhyccd_V20190122_0](http://www.qhyccd.com/file/repository/latestSoftAndDirver/SDK/V6.0.1/LINUX_qhyccd_V20190927_0.tgz). By 10/2019 we are at  [V6.0.1 a.k.a. LINUX_qhyccd_V20190927_0](http://www.qhyccd.com/file/repository/latestSoftAndDirver/SDK/V6.0.1/LINUX_qhyccd_V20190927_0.tgz). 
+ The [version on github](https://github.com/qhyccd-lzr/QHYCCD_Linux_New)
+ is out of date.
+
+
 Making that work:
 -----------------
 
-+ got what is said to be the
- [latest SDK](http://www.qhyccd.com/file/repository/latestSoftAndDirver/SDK/V4.0.12/LINUX_qhyccd_V20190122_0.tgz)
- as per [this announcement](https://www.qhyccd.com/index.php?m=content&c=index&a=show&catid=127&id=163).
- The [version on github](https://github.com/qhyccd-lzr/QHYCCD_Linux_New)
- seems less up to date.
- The latest SDK comes in the form of a `.tgz` which has to be extracted in `/` __(!!!)__.That is, to install
+### As of February 2019:
+
++ The earlier SDK (i.e. 4.0.1) came the form of a `.tgz` which has to be extracted in `/` __(!!!)__.That is, to install
 
         cd /
         sudo tar -xzvf <path_where_you_saved_it>/LINUX_qhyccd_V20190122_0.tgz
-    It includes installation instructions in `/usr/local/doc/` which might(?) be still relevant.
-    Remember to clean it up someday at the end with something like
+ It includes installation instructions in `/usr/local/doc/` which might(?) be still relevant.
+ Remember to clean it up someday at the end with something like
 
         sudo rm -rf `tar -tf LINUX_qhyccd_V20190122_0.tgz`
-    Now, to be fair, out of three installations, I apparently trashed one OS.
-    What *might* possibly have happened is that some system file (maybe `/etc/udev/rules/85-qhyccd.rules`?)
-    got written as owned by the installing user and not by `root`. This might be a reason for a strict
-    bootloader to be alarmed, and to mount `/` as readonly. I was not able to repair the situation in
-    recovery mode, so I had to reinstall the whole OS... Just saying, YMMV.
+ Now, to be fair, out of three installations, I apparently trashed one OS.
+ What *might* possibly have happened is that some system file (maybe `/etc/udev/rules/85-qhyccd.rules`?)
+ got written as owned by  the installing user and not by `root`. This might be a reason for a strict
+ bootloader to be alarmed, and to mount `/` as readonly. I was not able to repair the situation in
+ recovery mode, so I had to reinstall the whole OS... Just saying, YMMV.
 
 + Plugging in the camera in the SS-USB port, if all goes well the relevant firmware is downloaded and the camera is registrered so that the QHY sdk can find it. According to: [this post](https://www.qhyccd.com/bbs/index.php?topic=5781.0]) there used to be a missing step if the camera is plugged into an USB-3 port. My experience is a bit inconclusive. On my
 office computer the backpanel has two USB-SS ports, but plugging the camera there, with one cable I couldn't get it recognized, with another yes but apparently only at USB-2 speed. To check, if all goes well, `dmesg` would report
@@ -96,35 +101,35 @@ something like
     that this depends on the persistence of the formerly downloaded firmware.
 
 + Got [EZCAP for ubuntu16](https://www.dropbox.com/s/e9i0vntj14dgmh0/EZCAP_Qt-for-Ubuntu-x86_64-0.1.51.2.deb?dl=0)
-  linked at https://www.qhyccd.com/bbs/index.php?topic=6333.0
-  ([also here](https://www.qhyccd.com/file/repository/latestSoftAndDirver/Soft/EZCAP_QTLatestEdition.deb.zip)).
+  [mentioned here](https://www.qhyccd.com/bbs/index.php?topic=6333.0)
+  ([package also here](https://www.qhyccd.com/file/repository/latestSoftAndDirver/Soft/EZCAP_QTLatestEdition.deb.zip)).
   An EZCAP-Qt shortcut ends out being
   installed in Applications/Programming, the program is launched with `/usr/bin/EZCAP/EZCAP.sh`.
 
 + Surprisingly, EZCAP finds the camera, even without having asked `fx3load` to download specific firmware
- (which I thought was the one found in `/usr/local/lib/qhy/firmware/`). It runs
- a bit clunky, but works and shows things.
+(which I thought was the one found in `/usr/local/lib/qhy/firmware/`). It runs
+a bit clunky, but works and shows things.
 
-+ The [other demos published](https://www.qhyccd.com/index.php?m=content&c=index&a=show&catid=127&id=166)
- are for windows **:(**
++ The other demos in https://www.qhyccd.com/index.php?m=content&c=index&a=show&catid=127&id=166
+ are for windows :(
 
-As for interfacing with Matlab
-------------------------------
+
+#### As for interfacing with Matlab
 
 +  Note that `libqhyccd.so` (v.20190122 but apparently also earlier) "forgets" to declare its dependency
    from `libusb-1.0,` as can be seen from
    `readelf -d /usr/local/lib/libqhyccd.so`. The intended use seems to have been only that of building
    executables, linked at compile time with the system version of libusb found by a Cmake script.
-   Several symbols from `libusb` are needed and left undefined, as clear from
+   Several symbols from `libusb` are thus needed and undefined, as clear from
    `nm -D /usr/local/lib/libqhyccd.so | grep "U libusb"`. Matlab interfacing (mex or `loadlibrary`)
    would give ultimately the error `/usr/local/lib/libqhyccd.so: undefined symbol: libusb_open`.
    A possible workaround is to start matlab from shell with `LD_PRELOAD=/lib/x86_64-linux-gnu/libusb-1.0.so.0 matlab`
    but there may be more elegant solutions.
 
 + I could compile the
- [Matlab demo](http://qhyccd.com/file/repository/latestSoftAndDirver/SDK/MatlabSDKdemo.zip),
- (which is intended for windows) on Linux, with a couple of tweaks. However, it is just a
- single c++ program which gets built as mex, not a way to interface directly with the SDK library.
+[Matlab demo](http://qhyccd.com/file/repository/latestSoftAndDirver/SDK/MatlabSDKdemo.zip),
+(which is intended for windows) on Linux, with a couple of tweaks. However, it is just a
+single c++ program which gets built as mex, not a way to interface directly with the SDK library.
 
 + A more flexible way seems to me to use `loadlibrary('libqhyccd')`, because it gives
   granular access to the SDK functions at matlab prompt. To succeed in this, the header
@@ -135,4 +140,18 @@ As for interfacing with Matlab
 
 + On a windows 10 machine with Visual Studio 2017 I haven't yet been able neither to run the mex-demo,
   nor to loadlib the dll. The former gives compilation errors, with the latter the showstopper seems
-  to be the inclusion of CyAPI.h which is pure C++.
+  the inclusion of CyAPI.h which is pure C++.
+
+### October 2019 addendum:
+
++ Later SDKs at least included an `install.sh` and an `uninstall.sh` script. They also changed some installation directories, for example the firmware files were moved from `/usr/local/lib/qhy/firmware/` to `/lib/qhy/firmware/`.
+
++ However, I haven't tried to install intermediate versions of the SDK. I moved to V6.0.1 the moment I had to support the QHY600.
+
++ Fortunately James Fidell at [openastroproject](https://www.openastroproject.org/) created Debian packages amending various installation idiosincracies, see [this forum post](https://www.qhyccd.com/bbs/index.php?topic=7459.0). One needs the three packages. I hope the resource survives, as I'd rather adopt this way of installing for the future.
+
++ EZCAP now segfaults.
+
++ `libqhyccd.so` now declares its dependency on `libusb-1.0,`, so  starting Matlab with `LD_PRELOAD=...` is no more necessary.
+
++ the calls are now very verbose on `stdout`, it seems as if debugging symbols have not been squelched in the release.
