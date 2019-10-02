@@ -393,7 +393,6 @@ EXPORTC void STDCALL Bits16ToBits8(qhyccd_handle *h,uint8_t *InputData16,uint8_t
   */
 EXPORTC void  STDCALL HistInfo192x130(qhyccd_handle *h,uint32_t x,uint32_t y,uint8_t *InBuf,uint8_t *OutBuf);
 
-#if (defined (__APPLE__)&&defined( __MACH__))
 
 /**
     @fn uint32_t OSXInitQHYCCDFirmware(char *path)
@@ -414,7 +413,6 @@ EXPORTC uint32_t STDCALL OSXInitQHYCCDFirmwareArray();
 EXPORTC uint32_t STDCALL OSXInitQHYCCDAndroidFirmwareArray(int idVendor,int idProduct,
     qhyccd_handle *h);
 
-#endif
 
 /** @fn uint32_t GetQHYCCDChipInfo(qhyccd_handle *h,double *chipw,double *chiph,uint32_t *imagew,uint32_t *imageh,double *pixelw,double *pixelh,uint32_t *bpp)
       @brief get the camera's ccd/cmos chip info

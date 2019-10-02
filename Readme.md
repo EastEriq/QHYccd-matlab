@@ -98,7 +98,7 @@ Then either:
 
 At the end,
 
-    close(QC)
+    close_camera(QC)
 
 or all together `clear QC`.
 
