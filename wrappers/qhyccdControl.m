@@ -56,6 +56,11 @@ classdef qhyccdControl < uint16
         DefaultGain (53),
         DefaultOffset (54),
         OutputDataActualBits (55),
-        OutputDataAlignment (56)
+        OutputDataAlignment (56),
+        CAM_SINGLEFRAMEMODE (57),
+        CAM_LIVEVIDEOMODE (58),
+        CAM_IS_COLOR (59),
+        hasHardwareFrameCounter (60),
+        CONTROL_MAX_ID (61)
     end
 end

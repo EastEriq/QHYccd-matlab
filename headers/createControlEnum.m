@@ -1,6 +1,6 @@
 % quick & dirty parsing script to parse the qhyccdstruct.h
 %  file and generate a matlab enumeration
-fid1=fopen('qhyccdstruct_matlab.h');
+fid1=fopen('/usr/include/qhyccd/qhyccdstruct.h');
 fid2=fopen('../wrappers/qhyccdControl.m','w');
 
 l=''; controlblock=false; inum=-1;
