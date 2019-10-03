@@ -13,7 +13,7 @@ Experiences and attempts while installing QHY software
  windows version of the SDK, etc. (for instance, `qhyccd.h` from the
  [Qt demo](https://www.qhyccd.com/file/repository/latestSoftAndDirver/Soft/SDKDemo%20for%20Qt%20Creator%20MinGW%205.6.3.zip)
  is somehow commented). What comes closest to a "manual" is
- [this set of foum posts](https://www.qhyccd.com//bbs/index.php?topic=5903.0) (one post - one function). Ridicolous.
+ [this set of forum posts](https://www.qhyccd.com//bbs/index.php?topic=5903.0) (one post - one function). Ridicolous.
 
 + The publication state of a low level API of raw USB commands to QHY cameras is unclear.
  [Some partial information](https://www.qhyccd.com/index.php?m=content&c=index&a=show&catid=127&id=168)
@@ -136,7 +136,7 @@ single c++ program which gets built as mex, not a way to interface directly with
   files have to be tweaked a little in order to be made more C like so that matlab parses them.
 
 + See [here](https://www.qhyccd.com/bbs/index.php?topic=6038.msg31725#msg31725) for explanations
-  why a color image is 3x8bit wnen a camera is capable of 16bit.
+  why a color image is 3x8bit when a camera is capable of 16bit.
 
 + On a windows 10 machine with Visual Studio 2017 I haven't yet been able neither to run the mex-demo,
   nor to loadlib the dll. The former gives compilation errors, with the latter the showstopper seems
