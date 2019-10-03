@@ -360,7 +360,7 @@ classdef QHYccd < handle
         
         function set.readMode(QC,readMode)
             QC.success=(SetQHYCCDReadMode(QC.camhandle,readMode)==0);
-            if QC.verbose & ~ QC.success
+            if QC.verbose && ~ QC.success
                 fprintf('Invalid read mode! Legal is %d:%d\n',0,...
                     numel(QC.readModesList)-1);
             end
@@ -463,6 +463,8 @@ classdef QHYccd < handle
             if ret==0
                 t_readout=now;
                 QC.progressive_frame=1;
+            else
+                t_readout=[];
             end
             
             ImageStruct=struct(QC.ImageStructPrototype);
