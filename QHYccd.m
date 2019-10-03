@@ -33,6 +33,7 @@ classdef QHYccd < handle
         offset = 0;
         bitDepth= 16;
         temperature = NaN;
+        readMode=0;        
 
         % these don't have getters yet, no SDK function,
         %  could perhaps use a hidden property to store the last set value
@@ -51,6 +52,12 @@ classdef QHYccd < handle
         grabbing_GUI = true; % show a GUI for e.g. aborting a sequence acquisition
         save_images = false; % save images to files as they are taken
         memory_images = true; % store all the images in a structure array
+       % it would be nice if there was a way to understand whether the camera
+        %  is connected via USB2 or USB3, to get the current image
+        %  acquisition weight, and to compute the estimated transfer time,
+        %  for timeouts
+        timeout=2.8;
+
         
         verbose = ~false; % if true, printout of debug information
     end
@@ -63,20 +70,15 @@ classdef QHYccd < handle
                              'nx',[],'ny',[]);
         effective_area=struct('x1Eff',[],'y1Eff',[],'sxEff',[],'syEff',[]);
         overscan_area=struct('x1Over',[],'y1Over',[],'sxOver',[],'syOver',[]);
-        
+        readModesList=struct('name',[],'resx',[],'resy',[]);
+       
         % readonly replies from the camera
         id  = ''; % literal camera id; cannot be set, it might be useful to
                   % open a specific camera, scanning all the names
         expTimeLeft = NaN;
     end
     
-    properties (Constant = true)
-        % it would be nice if there was a way to understand whether the camera
-        %  is connected via USB2 or USB3, to get the current image
-        %  acquisition weight, and to compute the estimated transfer time,
-        %  for timeouts
-        timeout=2.8;
-        
+    properties (Constant = true)        
         % this is sort of a typedef
         ImageStructPrototype = struct('img',[],'datetime_readout',[],'exp',[],...
                                       'gain',[],'offset',[]);
@@ -177,6 +179,9 @@ classdef QHYccd < handle
            
             InitQHYCCD(QC.camhandle);
             
+            % query the camera and populate the QC structures with some
+            %  characteristic values
+            
             [ret1,QC.physical_size.chipw,QC.physical_size.chiph,...
                 QC.physical_size.nx,QC.physical_size.ny,...
                 QC.physical_size.pixelw,QC.physical_size.pixelh,...
@@ -209,6 +214,19 @@ classdef QHYccd < handle
                     QC.overscan_area.x1Over,QC.overscan_area.y1Over,...
                     QC.overscan_area.sxOver,QC.overscan_area.syOver);
                 if colorAvailable, fprintf(' Color camera\n'); end
+            end
+            
+            [ret5,Nmodes]=GetQHYCCDNumberOfReadModes(QC.camhandle);
+            if QC.verbose, fprintf('Read modes:\n'); end
+            for mode=1:Nmodes
+                [~,QC.readModesList(mode).name]=...
+                    GetQHYCCDReadModeName(QC.camhandle,mode-1);
+                [~,QC.readModesList(mode).resx,QC.readModesList(mode).resy]=...
+                    GetQHYCCDReadModeResolution(QC.camhandle,mode-1);
+                if QC.verbose
+                    fprintf('(%d) %s: %dx%d\n',mode-1,QC.readModesList(mode).name,...
+                        QC.readModesList(mode).resx,QC.readModesList(mode).resy);
+                end
             end
             
             QC.success = (ret1==0 & ret2==0 & ret3==0);
@@ -282,9 +300,9 @@ classdef QHYccd < handle
         end
         
         function ExpTimeLeft=get.expTimeLeft(QC)
-            % ExpTime in seconds
-            ExpTimeLeft=GetQHYCCDExposureRemaining(QC.camhandle)/1e6;
-            % if QC.verbose, fprintf('Exposure time is %f sec.\n',ExpTime); end
+            % ExpTime in seconds (with sdk 4.0 it was in usec?)
+            ExpTimeLeft=GetQHYCCDExposureRemaining(QC.camhandle);
+            % if QC.verbose, fprintf('Exposure time left is %f sec.\n',ExpTimeLeft); end
             QC.success=(ExpTimeLeft~=1e6*hex2dec('FFFFFFFF'));            
         end
         
@@ -335,7 +353,19 @@ classdef QHYccd < handle
             % check whether err=double(FFFFFFFF)...
             QC.success=(bitDepth==8 | bitDepth==16);
         end
-
+        
+        function set.readMode(QC,readMode)
+            QC.success=(SetQHYCCDReadMode(QC.camhandle,readMode)==0);
+            if QC.verbose & ~ QC.success
+                fprintf('Invalid read mode! Legal is %d:%d\n',0,...
+                    numel(QC.readModesList)-1);
+            end
+        end
+        
+        function currentReadMode=get.readMode(QC)
+            [ret,currentReadMode]=GetQHYCCDReadMode(QC.camhandle);
+            QC.success= ret==0 & (currentReadMode>0 & currentReadMode<2e6);
+        end
         
         function set.binning(QC,binning)
             % default is 1x1
