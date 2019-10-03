@@ -170,7 +170,9 @@ classdef QHYccd < handle
                                  % (TODO, if possible, the first not
                                  %  already open)
             end
-            [~,QC.id]=GetQHYCCDId(min(cameranum,num)-1);
+            [ret,QC.id]=GetQHYCCDId(max(min(cameranum,num)-1,0));
+            
+            if ret, return; end
             
             QC.camhandle=OpenQHYCCD(QC.id);
             if QC.verbose
@@ -264,6 +266,8 @@ classdef QHYccd < handle
                 % check this status, which may fail
                 ret=CloseQHYCCD(QC.camhandle);
                 QC.success=(ret==0);
+            else
+                ret=1;
             end
             % null the handle so that other methods can't talk anymore to it
             QC.camhandle=[];
