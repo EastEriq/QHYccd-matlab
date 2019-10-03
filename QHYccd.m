@@ -300,8 +300,8 @@ classdef QHYccd < handle
         end
         
         function ExpTimeLeft=get.expTimeLeft(QC)
-            % ExpTime in seconds (with sdk 4.0 it was in usec?)
-            ExpTimeLeft=GetQHYCCDExposureRemaining(QC.camhandle);
+            % ExpTime in seconds? (with sdk 4.0 it was in usec?)
+            ExpTimeLeft=GetQHYCCDExposureRemaining(QC.camhandle)/1e6;
             % if QC.verbose, fprintf('Exposure time left is %f sec.\n',ExpTimeLeft); end
             QC.success=(ExpTimeLeft~=1e6*hex2dec('FFFFFFFF'));            
         end
