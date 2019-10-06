@@ -20,7 +20,7 @@ Experiences and attempts while installing QHY software
  is out there, but a general API is
  ["announced"](https://github.com/qhyccd-lzr/QhyCmosCamera).
 
-+ the versioning scheme of the QHY SDK is not the most clear. The latest versions of it have been posted  [on this QHY page](https://www.qhyccd.com/index.php?m=content&c=index&a=show&catid=127&id=163). Versions are referred either by semver or by date. For instance
++ the versioning scheme of the QHY SDK is not the most clear. [This page](https://www.qhyccd.com/html/test_version/) has the links to all versions for all platforms. The latest versions of it have been posted  [on this QHY page](https://www.qhyccd.com/index.php?m=content&c=index&a=show&catid=127&id=163). Versions are referred either by semver or by date. For instance
 in my first go at these installations (2/2019) I
 got
  [V4.0.12 a.k.a. LINUX_qhyccd_V20190122_0](http://www.qhyccd.com/file/repository/latestSoftAndDirver/SDK/V6.0.1/LINUX_qhyccd_V20190927_0.tgz). By 10/2019 we are at  [V6.0.1 a.k.a. LINUX_qhyccd_V20190927_0](http://www.qhyccd.com/file/repository/latestSoftAndDirver/SDK/V6.0.1/LINUX_qhyccd_V20190927_0.tgz). 

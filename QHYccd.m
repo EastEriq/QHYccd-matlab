@@ -591,8 +591,9 @@ classdef QHYccd < handle
                 end
                 i=i+1;
                 if QC.verbose
-                    fprintf(' check live image %d, time elapsed %.3f sec., code %s\n',...
-                        QC.progressive_frame+1,toc,dec2hex(ret));
+                    fprintf([' check live image %d, exp. time left %f,'...
+                             ' t elapsed %.3f sec., code %s\n'],...
+                        QC.progressive_frame+1,QC.expTimeLeft,toc,dec2hex(ret));
                 end
             end
             
