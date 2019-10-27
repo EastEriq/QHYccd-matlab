@@ -80,9 +80,9 @@ Then either:
         ImageArray=take_sequence_blocking(QC)
 
     the prompt will be available only approximately after `QC.sequence_images*QC.expTime + t_readout`.
-    However, `QC.expTime` must be larger than `t_readout` (otherwise only the first two images
+    However, at least on the QHY367c, `QC.expTime` must be larger than `t_readout` (otherwise only the first two images
     can be retrieved, the following ones overfill the framebuffer); and moreover, acquisition
-    goes through a framebuffer which acts as a FIFO (capacity ~ two full frame images). The
+    goes through a framebuffer which acts as a FIFO (capacity ~ two full frame images on the QHY367c). The
     first images retrieved may be old ones still in buffer.
 
 + Split acquisition of a live sequence
@@ -104,6 +104,6 @@ At the end,
 
 or all together `clear QC`.
 
-__Note__: by quirks of the SDK, it seems that single exposure images are messed up if acquired after
+__Note__: by quirks of the SDK, it seems that single exposure images are messed up on the QHY367 if acquired after
 acquisition in live mode. Better `close_camera(QC); open_camera(QC);` when changing mode.
 Take care also not to `open_camera(QC)` more than once without closing, that can hang or crash matlab.
