@@ -20,12 +20,12 @@ Experiences and attempts while installing QHY software
  is out there, but a general API is
  ["announced"](https://github.com/qhyccd-lzr/QhyCmosCamera).
 
-+ the versioning scheme of the QHY SDK is not the most clear. [This page](https://www.qhyccd.com/html/test_version/) has the links to all versions for all platforms. The latest versions of it have been posted  [on this QHY page](https://www.qhyccd.com/index.php?m=content&c=index&a=show&catid=127&id=163). Versions are referred either by semver or by date. For instance
-in my first go at these installations (2/2019) I
-got
- [V4.0.12 a.k.a. LINUX_qhyccd_V20190122_0](http://www.qhyccd.com/file/repository/latestSoftAndDirver/SDK/V6.0.1/LINUX_qhyccd_V20190927_0.tgz). By 10/2019 we are at  [V6.0.1 a.k.a. LINUX_qhyccd_V20190927_0](http://www.qhyccd.com/file/repository/latestSoftAndDirver/SDK/V6.0.1/LINUX_qhyccd_V20190927_0.tgz). 
- The [version on github](https://github.com/qhyccd-lzr/QHYCCD_Linux_New)
- is out of date.
++ the versioning scheme of the QHY SDK is not the most clear. [This page](https://www.qhyccd.com/html/test_version/) has the links to all versions for all platforms. The latest versions of it have been posted  [on this QHY page](https://www.qhyccd.com/index.php?m=content&c=index&a=show&catid=127&id=163). Versions are referred either by semver or by date. The semver is reflected in the extension of the file `libqhyccd.so.x.y.z`. For instance in my first go at these installations (2/2019) I
+used
+ [V4.0.12 a.k.a. LINUX_qhyccd_V20190122_0](http://www.qhyccd.com/file/repository/latestSoftAndDirver/SDK/V6.0.1/LINUX_qhyccd_V20190927_0.tgz), and in 10/2019 [V6.0.1 a.k.a. LINUX_qhyccd_V20190927_0](http://www.qhyccd.com/file/repository/latestSoftAndDirver/SDK/V6.0.1/LINUX_qhyccd_V20190927_0.tgz) and [V6.0.4 a.k.a. LINUX_qhyccd_V20191023_0](http://www.qhyccd.com/file/repository/latestSoftAndDirver/SDK/V6.0.4/LINUX_qhyccd_V20191023_0.tgz).
+The [version of the SDK on github](https://github.com/qhyccd-lzr/QHYCCD_Linux_New) is completely out of date.
+
++ I reccommend the installation from the debian packages put together by James Fidell over the original ones provided by QHY, [see below](#OctoberAddendum).
 
 
 Making that work:
@@ -117,7 +117,7 @@ a bit clunky, but works and shows things.
 #### As for interfacing with Matlab
 
 +  Note that `libqhyccd.so` (v.20190122 but apparently also earlier) "forgets" to declare its dependency
-   from `libusb-1.0,` as can be seen from
+   from `libusb-1.0`, as can be seen from
    `readelf -d /usr/local/lib/libqhyccd.so`. The intended use seems to have been only that of building
    executables, linked at compile time with the system version of libusb found by a Cmake script.
    Several symbols from `libusb` are thus needed and undefined, as clear from
@@ -143,15 +143,16 @@ single c++ program which gets built as mex, not a way to interface directly with
   the inclusion of CyAPI.h which is pure C++.
 
 ### October 2019 addendum:
+<a name="OctoberAddendum"></a>
 
 + Later SDKs at least included an `install.sh` and an `uninstall.sh` script. They also changed some installation directories, for example the firmware files were moved from `/usr/local/lib/qhy/firmware/` to `/lib/qhy/firmware/`.
 
 + However, I haven't tried to install intermediate versions of the SDK. I moved to V6.0.1 the moment I had to support the QHY600.
 
-+ Fortunately James Fidell at [openastroproject](https://www.openastroproject.org/) created Debian packages amending various installation idiosincracies, see [this forum post](https://www.qhyccd.com/bbs/index.php?topic=7459.0). One needs the three packages. I hope the resource survives, as I'd rather adopt this way of installing for the future.
++ Fortunately James Fidell at [openastroproject](https://www.openastroproject.org/) created Debian packages amending various installation idiosincracies, see [his forum post for v6.0.1](https://www.qhyccd.com/bbs/index.php?topic=7459.0). One needs the three packages. I hope the resource survives, as I'd rather adopt this way of installing for the future. Keep an eye on that forum for further updates; for example [this post is about v6.0.4](https://www.qhyccd.com/bbs/index.php?topic=7477.0).
 
 + EZCAP now segfaults.
 
-+ `libqhyccd.so` now declares its dependency on `libusb-1.0,`, so  starting Matlab with `LD_PRELOAD=...` is no more necessary.
++ `libqhyccd.so` now declares its dependency on `libusb-1.0`, so  starting Matlab with `LD_PRELOAD=...` is no more necessary.
 
 + the calls are now very verbose on `stdout`, it seems as if debugging symbols have not been squelched in the release.
