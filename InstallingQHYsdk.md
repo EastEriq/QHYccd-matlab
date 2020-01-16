@@ -15,6 +15,9 @@ Experiences and attempts while installing QHY software
  is somehow commented). What comes closest to a "manual" is
  [this set of forum posts](https://www.qhyccd.com//bbs/index.php?topic=5903.0) (one post - one function). Ridicolous.
 
++ ETA: [An SDK manual](https://www.qhyccd.com/bbs/index.php?action=dlattach;topic=6776.0;attach=9793)
+  appeared 30/5/2019.
+
 + The publication state of a low level API of raw USB commands to QHY cameras is unclear.
  [Some partial information](https://www.qhyccd.com/index.php?m=content&c=index&a=show&catid=127&id=168)
  is out there, but a general API is

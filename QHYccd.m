@@ -246,7 +246,19 @@ classdef QHYccd < handle
             % USBtraffic value is said to affect glow. 30 is the value
             %   normally found in demos, it may need to be changed, also
             %   depending on USB2/3
-            SetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_USBTRAFFIC,30);
+            % The SDK manual says:
+            %  Used to set camera traffic,the bandwidth setting is only valid
+            %  for continuous mode, and the larger the bandwidth setting, the
+            %  lower the frame rate, which can reduce the load of the
+            %  computer.
+            SetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_USBTRAFFIC,3);
+
+            % from https://www.qhyccd.com/bbs/index.php?topic=6861
+            %  this is said to affect speed, annd accepting 0,1,2
+            % The SDK manual says:
+            %  USB transfer speed,but part of cameras not support
+            %  this function.
+            SetQHYCCDParam(QC.camhandle,qhyccdControl.CONTROL_SPEED,2);
             
             % set full area as ROI (?) -- wishful
             if colormode
