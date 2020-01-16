@@ -108,8 +108,9 @@ classdef QHYccd < handle
 
             % Load the library if needed (this is global?)           
             if ~libisloaded('libqhyccd')
-                loadlibrary('libqhyccd','headers/qhyccd_matlab.h',...
-                    'includepath','headers');
+                classpath=fileparts(mfilename('fullpath'));
+                loadlibrary('libqhyccd',...
+                     fullfile(classpath,'headers/qhyccd_matlab.h'));
             end
 
             % this can be called harmlessly multiple times?
@@ -143,7 +144,9 @@ classdef QHYccd < handle
             % don't release the SDK, other QC objects may be using it
             % ReleaseQHYCCDResource
             
-            % nor unload the library
+            % nor unload the library,
+            %  which at least with libqhyccd 6.0.5 even crashes Matlab
+            %  with multiple errors traced into libpthread.so
             % unloadlibrary('libqhyccd')
         end
         
