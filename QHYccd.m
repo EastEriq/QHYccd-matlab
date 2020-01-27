@@ -438,6 +438,20 @@ classdef QHYccd < handle
     
     %% methods applying to a specific camera once communication with it is open
     methods
+        function listControlsSupported(QC)
+            % list whether each possible qhyccdControl is supported or not
+            %  by this camera
+            [m,s]=enumeration('qhyccdControl');
+            fprintf('Controls supported:\n===================\n');
+            for i=1:length(m)
+                if IsQHYCCDControlAvailable(QC.camhandle,m(i))
+                    fprintf('XX');
+                else
+                    fprintf('++');
+                end
+                fprintf(' %s\n',s{i});
+            end
+        end
         
         function ImageStruct=take_single_exposure(QC)
         % Take one image in single exposure mode, monolithic
