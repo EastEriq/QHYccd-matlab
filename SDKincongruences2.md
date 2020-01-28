@@ -19,8 +19,9 @@ of threads involved. I don't remember that something the like was happening with
 something about creating image queues. Maybe they are not deallocated on exit and that is the reason
 for the crash.
 
-+ `QHYCCD|QHY5IIIBASE.CPP|ReadImageInDDR_...` (?, check) can get stuck with poor USB communication
-(e.g., long cable) and there is no way to abort the attempt but to kill Matlab.
++ With poor USB communication (e.g., long cable), the SDK process can get stuck in a phase 
+flagged by repeated `QQHYCCD|QHY5IIIBASE.CPP|ReadImageInDDR_Titan| readusb failure` debug
+messages on stdout. There is no way to abort the attempt but to kill Matlab. This is Bad.
 
 + Live mode doesn't seem to work for the QHY600. That is, with the calling sequence
 ```
@@ -40,7 +41,9 @@ it is bad that `0xFFFFFFFF` flags both errors and image not yet available. Still
    ExpQHYCCDSingleFrame(QC.camhandle);
    GetQHYCCDSingleFrame(QC.camhandle,QC.pImg);
 ```
-I get at best wall times of 2.8sec+texp with the QHY600 and 1.9sec+texp with the QHY367.
+I get at best wall times of 2.8sec+texp with the QHY600 and 1.9sec+texp with the QHY367. The split-out
+is ~100ms in `SetQHYCCDStreamMode`, ~1ms in `ExpQHYCCDSingleFrame` and over 2500ms in `GetQHYCCDSingleFrame` for the QHY600, e.g. This is with the cameras directly connected to USB3.2 ports of a fast motherboard with short cables.
+
 Now there should be
 two control parameters affecting the transfer speed, `CONTROL_SPEED` (9) and `CONTROL_USBTRAFFIC`
 (12). `IsQHYCCDControlAvailable()` says that only the second is available in the two cameras. However,
