@@ -469,15 +469,21 @@ classdef QHYccd < handle
         % set up the scenes for taking a single exposure
             QC.progressive_frame=0;
             
+            tic
             QC.allocate_image_buffer(QC)
             
+            toc
             SetQHYCCDStreamMode(QC.camhandle,0);
+            %InitQHYCCD(QC.camhandle); %don't recall, save time
             
+            toc
             ret=ExpQHYCCDSingleFrame(QC.camhandle);
+            toc
             if ret==hex2dec('2001') % "QHYCCD_READ_DIRECTLY". No idea but
                                     %   it is like that in the demoes
                 pause(0.1)
             end
+            toc
             
             QC.success=(ret==0);
 
@@ -486,6 +492,7 @@ classdef QHYccd < handle
         function ImageStruct=collect_single_exposure(QC)
         % collect the exposed frame
             
+        toc
             [ret,w,h,bp,channels]=...
                 GetQHYCCDSingleFrame(QC.camhandle,QC.pImg);
 
@@ -496,13 +503,14 @@ classdef QHYccd < handle
                 t_readout=[];
             end
             
+            toc
             ImageStruct=struct(QC.ImageStructPrototype);
             ImageStruct.datetime_readout=t_readout;
             ImageStruct.exp=QC.expTime;
             ImageStruct.gain=QC.gain;
             ImageStruct.offset=QC.offset;
             ImageStruct.img=QC.unpackImgBuffer(QC.pImg,w,h,channels,bp);
-
+toc
             % if write to a file
             if QC.save_images
                 QC.writeImageFile(QC,ImageStruct)
@@ -553,8 +561,16 @@ classdef QHYccd < handle
 
             QC.progressive_frame=0;
             
+ %           CloseQHYCCD(QC.camhandle);
             SetQHYCCDStreamMode(QC.camhandle,1);
-
+            InitQHYCCD(QC.camhandle);
+            % have these to be reset after InitQHYCCD? Other parameters as
+            %   well?
+            SetQHYCCDBitsMode(QC.camhandle,QC.bitDepth)
+            %SetQHYCCDResolution(QC.camhandle,0,0,...
+            %                    QC.physical_size.nx,QC.physical_size.ny)
+            QC.ROI=[0,0,QC.physical_size.nx,QC.physical_size.ny];
+            
             BeginQHYCCDLive(QC.camhandle);
            
          end
@@ -575,6 +591,7 @@ classdef QHYccd < handle
             
             QC.deallocate_image_buffer(QC)
             
+            %CloseQHYCCD(QC.camhandle)
         end
         
         
@@ -678,7 +695,7 @@ classdef QHYccd < handle
             %  time much shorter. However, the SDK doesn't provide a safe way
             %  to determine this size, and hence we allocate a lot to stay
             %  safe from segfaults.
-            imlength=GetQHYCCDMemLength(QC.camhandle);
+            imlength=GetQHYCCDMemLength(QC.camhandle)
             QC.pImg=libpointer('uint8Ptr',zeros(imlength,1,'uint8'));
         end
 
