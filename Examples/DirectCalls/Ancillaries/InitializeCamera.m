@@ -1,4 +1,17 @@
+% stupid recovery actions, may be needed for repeted calls,
+% otherwise cameras may not be found
+try
+    clear camhandle 
+catch
+end
+try
+    unloadlibrary('libqhyccd')
+catch
+end
+
 if ~libisloaded('libqhyccd'), loadLibqhyccd; end
+
+EnableQHYCCDMessage(false)
 
 InitQHYCCDResource;
 
@@ -8,7 +21,26 @@ fprintf('Using SDK v%d.%d.%d.%d\n',version,major,minor,build);
 num=ScanQHYCCD;
 fprintf('Found %d QHYCCD cameras\n',num)
 
-[~,id]=GetQHYCCDId(num-1);
+if num==1
+  [~,id]=GetQHYCCDId(0);
+end
+if num>1
+    fprintf('\n choose the camera in the menu on the figure:\n',num)
+    ids={};
+    for i=1:num
+        [~,ids{i}]=GetQHYCCDId(i-1);
+    end
+    clf
+    chosen=false;
+    mm=uicontrol('Style','popupmenu','Position',[15 15 300 30],...
+        'string',ids,'callback','chosen=true;');
+    while ~chosen
+        pause(0.1)
+    end
+    id=ids{get(mm,'value')};
+    delete(mm)
+end
+
 fprintf('Opening camera %s\n',id)
 
 camhandle=OpenQHYCCD(id);

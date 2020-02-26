@@ -26,10 +26,9 @@ EXPORTC void STDCALL SetQHYCCDLogLevel(uint8_t logLevel);
 
 #if defined(__linux__ )&&!defined (__ANDROID__)
     #ifdef __cplusplus
-
 EXPORTC void STDCALL SetQHYCCDLogFunction(std::function<void(const std::string &message)> logFunction);
-
     #endif
+    EXPORTC void STDCALL SetQHYCCDBufferNumber(uint32_t BufNumber);
 #endif
 
 EXPORTC void STDCALL EnableQHYCCDMessage(bool enable);
@@ -414,6 +413,7 @@ EXPORTC uint32_t STDCALL OSXInitQHYCCDAndroidFirmwareArray(int idVendor,int idPr
     qhyccd_handle *h);
 
 
+
 /** @fn uint32_t GetQHYCCDChipInfo(qhyccd_handle *h,double *chipw,double *chiph,uint32_t *imagew,uint32_t *imageh,double *pixelw,double *pixelh,uint32_t *bpp)
       @brief get the camera's ccd/cmos chip info
       @param h camera control handle
@@ -697,7 +697,7 @@ EXPORTC uint32_t STDCALL SetQHYCCDGPSMasterSlave(qhyccd_handle *handle,uint8_t i
 
 EXPORTC void STDCALL SetQHYCCDGPSSlaveModeParameter(qhyccd_handle *handle,uint32_t target_sec,uint32_t target_us,uint32_t deltaT_sec,uint32_t deltaT_us,uint32_t expTime);
 
-// EXPORTFUNC void STDCALL SetQHYCCDQuit();
+EXPORTFUNC void STDCALL QHYCCDQuit();
 
 EXPORTC uint32_t STDCALL QHYCCDVendRequestWrite(qhyccd_handle *h,uint8_t req,uint16_t value,uint16_t index1,uint32_t length,uint8_t *data);
 
@@ -712,7 +712,7 @@ EXPORTC uint32_t STDCALL GetQHYCCDSDKVersion(uint32_t *year,uint32_t *month,uint
 
 
 //APIs for the Readout Mode. One camera may have more than one readout mode. The different readout mode has different base-resolution. For example
-//The QHY42PRO support HDR and STD mode. HDR mode base-resolution is 4096*2048. While the STD mode is 2048*2048. In this case we need to use the 
+//The QHY42PRO support HDR and STD mode. HDR mode base-resolution is 4096*2048. While the STD mode is 2048*2048. In this case we need to use the
 //readout mode to set it. The host application need to get the readout mode and select one to set it. The sequece that call this fucntion need to be(......)
 
 
