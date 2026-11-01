@@ -107,3 +107,7 @@ or all together `clear QC`.
 __Note__: by quirks of the SDK, it seems that single exposure images are messed up on the QHY367 if acquired after
 acquisition in live mode. Better `close_camera(QC); open_camera(QC);` when changing mode.
 Take care also not to `open_camera(QC)` more than once without closing, that can hang or crash matlab.
+
+## Obsolescence note:
+
+This project is abandoned, and further development has been carried on under https://github.com/EastEriq/LAST_QHYccd, which is the hardware driver for QHY cameras in the [LAST astronomical observatory](https://www.weizmann.ac.il/wao/).
